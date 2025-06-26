@@ -244,7 +244,7 @@ def display_collections_list():
             st.caption("Specify 'default' to use server-configured environment variables for model, vendor, endpoint, or API key.")
             
             embed_model_name = st.text_input("Model Name", value="default", help="e.g., sentence-transformers/all-MiniLM-L6-v2, text-embedding-3-small, or 'default'")
-            embed_vendor = st.selectbox("Vendor", ["default", "local", "openai", "ollama"], index=0, help="e.g., 'local', 'openai', 'ollama', or 'default'")
+            embed_vendor = st.selectbox("Vendor", ["default", "local", "openai", "ollama", "clip"], index=0, help="e.g., 'local', 'openai', 'clip', 'ollama', or 'default'")
             embed_api_endpoint = st.text_input("API Endpoint (Optional)", value="default", help="e.g., http://localhost:11434 for Ollama, or 'default'")
             embed_apikey = st.text_input("API Key (Optional)", type="password", value="default", help="Required for some vendors like OpenAI, or 'default'")
 
@@ -433,8 +433,27 @@ def display_collection_detail():
                             height=100,
                             key=field_key
                         )
+                    elif param_info['type'] == 'boolean':
+                        user_input = st.checkbox(
+                            param_name,
+                            value=default_value if default_value is not None else False,
+                            help=param_info.get('description'),
+                            key=field_key
+                        )
+                    elif param_info['type'] == 'enum':
+                        options = param_info.get('options', [])
+                        idx = 0
+                        if default_value in options:
+                            idx = options.index(default_value)
+                        user_input = st.selectbox(
+                            param_name,
+                            options=options,
+                            index=idx,
+                            help=param_info.get('description'),
+                            key=field_key
+                            )
                     user_plugin_inputs[param_name] = user_input
-                
+
                 ingest_button_label = "Ingest"
                 uploaded_file = None
                 if selected_plugin.get('kind') == 'file-ingest':

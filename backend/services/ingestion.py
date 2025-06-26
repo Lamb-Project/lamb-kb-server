@@ -109,11 +109,25 @@ class IngestionService:
             # Create URL path for the file
             relative_path = file_path.relative_to(cls.STATIC_DIR)
             file_url = f"{cls.STATIC_URL_PREFIX}/{relative_path}"
-            
+            try:
+                original_stem = Path(sanitized_original_name).stem  # sin extensión
+                data_dirname = f"data_{original_stem}"
+                data_dir = collection_dir / data_dirname
+                data_dir.mkdir(parents=True, exist_ok=True)
+
+                # Ruta final donde duplicaremos el PDF
+                target_pdf_path = data_dir / file_path.name
+                shutil.copy(file_path, target_pdf_path)
+
+                print(f"DEBUG: [save_uploaded_file] Copied file to data directory: {target_pdf_path}")
+            except Exception as e:
+                print(f"WARNING: [save_uploaded_file] Failed to create or copy to data dir: {e}")
+
             result = {
                 "file_path": str(file_path),
                 "file_url": file_url,
-                "original_filename": sanitized_original_name
+                "original_filename": sanitized_original_name,
+                "data_dir": str(data_dir)
             }
             print(f"DEBUG: [save_uploaded_file] File saved, returning result")
             return result

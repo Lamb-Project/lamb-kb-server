@@ -10,9 +10,15 @@ markitdown[all]>=0.1.0
 flask>=2.3.0
 requests>=2.31.0
 firecrawl==1.7.0
-langchain-text-splitters>=0.7.0
+langchain-text-splitters==0.3.8
 ollama
 # Additional dependencies used in plugins
 firecrawl>=1.7.0
 pathlib>=1.0.1
 uuid>=1.30
+markdown2
+torch
+Pillow
+pymupdf
+docling
+openai

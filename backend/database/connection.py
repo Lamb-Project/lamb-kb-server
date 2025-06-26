@@ -15,6 +15,8 @@ from sqlalchemy.orm import sessionmaker, Session
 
 from .models import Base, Collection, Visibility
 
+from .embedding_functions.clip import CLIPEmbeddingFunction
+
 # Database paths
 DATA_DIR = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) / "data"
 SQLITE_DB_PATH = DATA_DIR / "lamb-kb-server.db"
@@ -57,7 +59,8 @@ def get_embedding_function_by_params(vendor: str, model_name: str, api_key: str 
                 api_endpoint = api_endpoint[:-len("/embeddings")]
             kwargs["api_base"] = api_endpoint
         return OpenAIEmbeddingFunction(**kwargs)
-    
+    elif vendor == "clip":
+        return CLIPEmbeddingFunction(model_name=model_name)
     else:
         raise ValueError(f"Unsupported embedding vendor: {vendor}")
 

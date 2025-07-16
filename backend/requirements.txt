@@ -10,7 +10,8 @@ markitdown[all]>=0.1.0
 flask>=2.3.0
 requests>=2.31.0
 firecrawl==1.7.0
-langchain-text-splitters>=0.7.0
+langchain-text-splitters>=0.3.8
+markdown2
 ollama
 # Additional dependencies used in plugins
 firecrawl>=1.7.0

@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements first for better caching
 COPY backend/requirements.txt .
 
+# Upgrade pip first as a best practice
+RUN python -m pip install --upgrade pip
+
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 

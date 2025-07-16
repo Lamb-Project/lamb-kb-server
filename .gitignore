@@ -136,6 +136,10 @@ ENV/
 env.bak/
 venv.bak/
 
+# Dev container settings
+.devcontainer/
+docker-compose.override.yaml
+
 # Spyder project settings
 .spyderproject
 .spyproject

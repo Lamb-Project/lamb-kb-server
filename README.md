@@ -8,13 +8,14 @@ A dedicated knowledge base server designed to provide robust vector database fun
 
 ## Setup and Installation
 
-### Prerequisites
+### Option 1: Local Installation
+#### Prerequisites
 
 - Python 3.11 or higher
 - pip (Python package manager)
 - recommended use of Conda or virtual environment 
 
-### Installation
+#### Installation
 
 1. Clone the repository:
 ```bash
@@ -36,7 +37,7 @@ pip install -r requirements.txt
    - Modify the API key as needed (default: "0p3n-w3bu!")
    - Configure embedding model settings (see Embeddings Configuration section)
 
-### Running the Server
+#### Running the Server
 
 ```bash
 cd backend
@@ -45,7 +46,7 @@ python start.py
 
 The server will run on http://localhost:9090 by default. Edit start.py to change the port. 
 
-### Web Explorer and Diagnostics
+#### Web Explorer and Diagnostics
 
 The Lamb KB Server includes a web-based UI to explore collections and diagnose potential issues with the ChromaDB database:
 
@@ -77,6 +78,15 @@ The diagnostics page helps identify and fix common issues like:
 - Missing UUID mappings
 - Orphaned data directories
 - Inconsistencies between the SQLite registry and ChromaDB 
+
+### Option 2: Docker Containers
+1. Clone the repository:
+```bash
+git clone git@github.com:Lamb-Project/lamb-kb-server.git
+```
+2. Rename the ``.env.example``  to ``.env``.
+3. Execute ``docker-compose --env-file ./backend/.env up -d --build``
+4. You have a ready development environment running.
 
 ## API Authentication
 

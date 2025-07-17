@@ -7,23 +7,20 @@ services:
       dockerfile: Dockerfile.server
     ports:
       - "9090:9090"
+    env_file:
+      - backend/.env
     environment:
-      - HOME_URL=http://localhost:9090
       - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
       - FIRECRAWL_API_URL=${FIRECRAWL_API_URL}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
-      - LAMB_API_KEY=0p3n-w3bu!
-      - EMBEDDINGS_MODEL=sentence-transformers/all-MiniLM-L6-v2
-      - EMBEDDINGS_VENDOR=ollama
-      - EMBEDDINGS_API_ENDPOINT=http://127.0.0.1:11434
     volumes:
       - ./backend:/app/backend
       - ./static:/app/static
       - kb-data:/app/data
-    #network_mode: "host"
-    extra_hosts:
-    - "host.docker.internal:host-gateway"
-
+    networks:
+      - app-network
+    depends_on:
+      - ollama
 
   frontend:
     build:
@@ -32,16 +29,35 @@ services:
     ports:
       - "8501:8501"
     environment:
-      - API_BASE_URL=http://127.0.0.1:9090
+      - API_BASE_URL=http://backend:9090
       - API_TOKEN=0p3n-w3bu!
     depends_on:
       - backend
-    network_mode: "host"
-    extra_hosts:
-    - "host.docker.internal:host-gateway"
+    networks:
+      - app-network
+
+  ollama:
+    build:
+      context: ./ollama
+      args:
+        OLLAMA_EMBEDDING_MODEL: ${EMBEDDINGS_MODEL}
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_ORIGINS=*
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   kb-data:
     name: lamb-kb-data
   static-files:
     name: lamb-static-files
+  ollama-data:
+    name: lamb-ollama-data

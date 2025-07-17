@@ -87,39 +87,14 @@ def _get_and_validate_collection(db: Session, collection_id: int):
     include_in_schema=False, # Hide from OpenAPI docs
     status_code=status.HTTP_201_CREATED # Explicitly set 201 status
 )
+
+# collections.py
+
 @router.post(
     "/", # Route with trailing slash
-    response_model=CollectionResponse, # Reverted: Return full response
+    response_model=CollectionResponse,
     summary="Create collection",
-    description="""Create a new knowledge base collection.
-    
-    Example:
-    ```bash
-    curl -X POST 'http://localhost:9090/collections' \ 
-      -H 'Authorization: Bearer 0p3n-w3bu!' \ 
-      -H 'Content-Type: application/json' \ 
-      -d '{
-        "name": "my-knowledge-base",
-        "description": "My first knowledge base",
-        "owner": "user1",
-        "visibility": "private",
-        "embeddings_model": {
-          "model": "default",
-          "vendor": "default",
-          "endpoint":"default",
-          "apikey": "default"
-        }
-        
-        # For OpenAI embeddings, use:
-        # "embeddings_model": {
-        #   "model": "text-embedding-3-small",
-        #   "vendor": "openai",
-        #   "endpoint":"https://api.openai.com/v1/embeddings"
-        #   "apikey": "your-openai-key-here"
-        # }
-    '
-    ```
-    """,
+    description="""Create a new knowledge base collection.""",
     responses={
         201: {"description": "Collection created successfully"},
         400: {"description": "Bad request - Invalid collection data"},
@@ -129,81 +104,72 @@ def _get_and_validate_collection(db: Session, collection_id: int):
     status_code=status.HTTP_201_CREATED
 )
 async def create_collection(
-    collection: CollectionCreate, 
+    collection: CollectionCreate,
     db: Session = Depends(get_db)
 ):
-    """Create a new knowledge base collection.
+    """Create a new knowledge base collection."""
     
-    Args:
-        collection: Collection data from request body
-        db: Database session
-        
-    Returns:
-        The created collection
-        
-    Raises:
-        HTTPException: If collection creation fails
-    """
-    # Resolve default values for embeddings_model before passing to service
-    if collection.embeddings_model:
-        model_info = collection.embeddings_model.model_dump()
-        resolved_config = {}
-        
-        # Resolve vendor
-        vendor = model_info.get("vendor")
-        if vendor == "default":
-            vendor = os.getenv("EMBEDDINGS_VENDOR")
-            if not vendor:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="EMBEDDINGS_VENDOR environment variable not set but 'default' specified"
-                )
-        resolved_config["vendor"] = vendor
-        
-        # Resolve model
-        model = model_info.get("model")
-        if model == "default":
-            model = os.getenv("EMBEDDINGS_MODEL")
-            if not model:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="EMBEDDINGS_MODEL environment variable not set but 'default' specified"
-                )
-        resolved_config["model"] = model
-        
-        # Resolve API key (optional)
-        api_key = model_info.get("apikey")
-        if api_key == "default":
-            api_key = os.getenv("EMBEDDINGS_APIKEY", "")
-        
-        # Only log whether we have a key or not, never log the key itself or its contents
-        if vendor == "openai":
-            print(f"INFO: [router.create_collection] Using OpenAI API key: {'[PROVIDED]' if api_key else '[MISSING]'}")
-            
-        resolved_config["apikey"] = api_key
-        
-        # Resolve API endpoint (needed for some vendors like Ollama)
-        api_endpoint = model_info.get("api_endpoint")
-        if api_endpoint == "default":
-            api_endpoint = os.getenv("EMBEDDINGS_ENDPOINT")
-            if not api_endpoint and vendor == "ollama":
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="EMBEDDINGS_ENDPOINT environment variable not set but 'default' specified for Ollama"
-                )
-        if api_endpoint:  # Only add if not None
-            resolved_config["api_endpoint"] = api_endpoint
-            
-        # Log the resolved configuration
-        print(f"INFO: [router.create_collection] Resolved embeddings config: {resolved_config}")
-        
-        # Replace default values with resolved values in the collection object
-        collection.embeddings_model = EmbeddingsModel(**resolved_config)
-    
+    # --- Start of New Code ---
+
+    # Sanity check to ensure this new code is running
+    print("DEBUG: Running the updated create_collection function [July 2025 version].")
+
+    if not collection.embeddings_model:
+        # If there's no model info, just proceed to the service layer.
+        created_collection = CollectionsService.create_collection(collection, db)
+        return created_collection
+
+    model_info = collection.embeddings_model.model_dump()
+    resolved_config = {}
+
+    # 1. Resolve Vendor
+    vendor = model_info.get("vendor")
+    if vendor == "default":
+        vendor = os.getenv("EMBEDDINGS_VENDOR")
+    resolved_config["vendor"] = vendor
+    print(f"DEBUG: Vendor resolved to -> {vendor}")
+
+    # 2. Resolve Model
+    model = model_info.get("model")
+    if model == "default":
+        model = os.getenv("EMBEDDINGS_MODEL")
+    resolved_config["model"] = model
+
+    # 3. Resolve API Key
+    api_key = model_info.get("apikey")
+    if api_key == "default":
+        api_key = os.getenv("EMBEDDINGS_APIKEY", "")
+    resolved_config["apikey"] = api_key
+
+    # 4. Resolve API Endpoint (Simplified Logic)
+    api_endpoint = model_info.get("api_endpoint")
+    # If the request doesn't specify an endpoint, or it's 'default', get it from the environment.
+    if not api_endpoint or api_endpoint == "default":
+        api_endpoint = os.getenv("EMBEDDINGS_ENDPOINT")
+        print(f"DEBUG: Endpoint from request was empty/default. Trying env. Got -> {api_endpoint}")
+
+    # 5. Validate and Finalize Configuration
+    # If the vendor is ollama, the endpoint is mandatory.
+    if vendor == "ollama" and not api_endpoint:
+        raise HTTPException(
+            status_code=400,
+            detail="Configuration error: The 'ollama' vendor was selected, but no API endpoint was found in the request or the EMBEDDINGS_ENDPOINT environment variable."
+        )
+
+    # Add the endpoint to the final config if it exists.
+    if api_endpoint:
+        resolved_config["api_endpoint"] = api_endpoint
+
+    print(f"INFO: Final resolved embeddings config: {resolved_config}")
+
+    # Replace default values with resolved values in the collection object
+    collection.embeddings_model = EmbeddingsModel(**resolved_config)
+
     # Now call the service with default values already resolved
     created_collection = CollectionsService.create_collection(collection, db)
-    # Return the full collection object as defined by CollectionResponse
     return created_collection
+    
+    # --- End of New Code ---
 
 
 # List collections (handle both /collections and /collections/)

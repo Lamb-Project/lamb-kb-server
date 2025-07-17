@@ -1,36 +1,40 @@
-import os
-from fastapi import APIRouter, Depends, HTTPException, status, Query, File, Form, UploadFile, BackgroundTasks
-from sqlalchemy.orm import Session
+# Python Libraries
 import json
-from typing import List
+import os
+import uuid
 
+# Third-Party Libraries
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
+from sqlalchemy.orm import Session
+
+# Local Imports
 # Database imports
-from database.connection import get_db, get_chroma_client
+from database.connection import get_chroma_client, get_db, SessionLocal
+from database.models import FileStatus
 from database.service import CollectionService
-from database.models import Collection, FileRegistry, FileStatus
-
-# Schema imports
-from schemas.collection import (
-    CollectionCreate,
-    CollectionResponse,
-    CollectionList,
-    EmbeddingsModel
-)
-from schemas.ingestion import (
-    IngestURLRequest,
-    AddDocumentsRequest,
-    AddDocumentsResponse,
-    IngestBaseRequest
-)
-from schemas.query import QueryRequest, QueryResponse
-
-# Service imports
-from services.collections import CollectionsService
-from services.ingestion import IngestionService
-from services.query import QueryService
 
 # Dependency imports
 from dependencies import verify_token
+
+# Schema imports
+from schemas.collection import CollectionCreate, CollectionList, CollectionResponse, EmbeddingsModel
+from schemas.ingestion import AddDocumentsRequest, AddDocumentsResponse, IngestBaseRequest, IngestURLRequest
+from schemas.query import QueryRequest, QueryResponse
+
+# Service imports
+from backend.services.ingestion_service import IngestionService
+from backend.services.query_service import QueryService
+from services.collection_service import CollectionService
 
 router = APIRouter(
     prefix="/collections",
@@ -86,7 +90,7 @@ async def create_collection(
 ):
     """Create a new knowledge base collection."""
     if not collection.embeddings_model:
-        return CollectionsService.create_collection(collection, db)
+        return CollectionService.create_collection(collection, db)
 
     model_info = collection.embeddings_model.model_dump()
     resolved_config = {}
@@ -120,7 +124,7 @@ async def create_collection(
         resolved_config["api_endpoint"] = api_endpoint
 
     collection.embeddings_model = EmbeddingsModel(**resolved_config)
-    return CollectionsService.create_collection(collection, db)
+    return CollectionService.create_collection(collection, db)
 
 @router.get(
     "/",
@@ -136,7 +140,7 @@ async def list_collections(
     visibility: str = Query(None)
 ):
     """List all available knowledge base collections with optional filtering."""
-    return CollectionsService.list_collections(db, skip, limit, owner, visibility)
+    return CollectionService.list_collections(db, skip, limit, owner, visibility)
 
 @router.get(
     "/{collection_id}",
@@ -146,7 +150,7 @@ async def list_collections(
 )
 async def get_collection(collection_id: int, db: Session = Depends(get_db)):
     """Get details of a specific knowledge base collection."""
-    return CollectionsService.get_collection(collection_id, db)
+    return CollectionService.get_collection(collection_id, db)
 
 @router.post(
     "/{collection_id}/ingest-url",
@@ -168,7 +172,7 @@ async def ingest_url_to_collection(
     if not plugin:
         raise HTTPException(status_code=404, detail=f"Plugin {request.plugin_name} not found")
 
-    import uuid
+    
     collection_dir = IngestionService._get_collection_dir(collection.owner, collection.name)
     unique_filename = f"{uuid.uuid4().hex}.md"
     file_path = collection_dir / unique_filename
@@ -188,7 +192,6 @@ async def ingest_url_to_collection(
     )
     
     def background_task(urls, plugin_name, params, coll_id, reg_id, f_path):
-        from database.connection import SessionLocal
         db_bg = SessionLocal()
         try:
             plugin_instance = IngestionService.get_plugin(plugin_name)
@@ -284,7 +287,7 @@ async def ingest_file_to_collection(
     )
     
     def background_task(f_path, p_name, p_params, coll_id, reg_id):
-        from database.connection import SessionLocal
+        
         db_bg = SessionLocal()
         try:
             documents = IngestionService.ingest_file(f_path, p_name, p_params)
@@ -364,7 +367,6 @@ async def ingest_base_to_collection(
     if plugin.kind != "base-ingest":
         raise HTTPException(status_code=400, detail=f"Plugin {request.plugin_name} is not a base-ingest plugin")
     
-    import uuid
     collection_dir = IngestionService._get_collection_dir(collection.owner, collection_name)
     unique_filename = f"{uuid.uuid4().hex}.md"
     file_path = collection_dir / unique_filename
@@ -382,7 +384,6 @@ async def ingest_base_to_collection(
     )
     
     def background_task(p_name, params, coll_id, reg_id, f_path):
-        from database.connection import SessionLocal
         db_bg = SessionLocal()
         try:
             plugin_instance = IngestionService.get_plugin(p_name)

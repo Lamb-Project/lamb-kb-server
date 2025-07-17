@@ -4,12 +4,21 @@ Query service for retrieving data from collections.
 This module provides services for querying collections using query plugins.
 """
 
+# Python Libraries
 import time
-from typing import Dict, List, Any, Optional
+import traceback
+from typing import Any, Dict, List, Optional
 
+# Third-Party Libraries
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+# Local Imports
+# Database imports
+from backend.database.connection import get_chroma_client, get_embedding_function
+from database.service import CollectionService
+
+# Plugin imports
 from plugins.base import PluginRegistry, QueryPlugin
 
 
@@ -77,7 +86,6 @@ class QueryService:
         
         try:
             # Get the collection from SQLite to ensure we use the same embedding function
-            from database.service import CollectionService
             db_collection = CollectionService.get_collection(db, collection_id)
             if not db_collection:
                 raise HTTPException(
@@ -85,8 +93,7 @@ class QueryService:
                     detail=f"Collection with ID {collection_id} not found"
                 )
             
-            # Get the embedding function for this collection using the SQLite record
-            from database.connection import get_embedding_function, get_chroma_client
+            # Get the embedding function for this collection using the SQLite recordx
             try:
                 # Create embedding function from collection record
                 print(f"DEBUG: [query_collection] Creating embedding function from collection record")
@@ -184,7 +191,6 @@ class QueryService:
                 
             except Exception as ef_e:
                 print(f"DEBUG: [query_collection] ERROR preparing embedding function: {str(ef_e)}")
-                import traceback
                 print(f"DEBUG: [query_collection] Stack trace:\n{traceback.format_exc()}")
                 raise HTTPException(
                     status_code=500,

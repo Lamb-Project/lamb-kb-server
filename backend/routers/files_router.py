@@ -1,19 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+# Python Libraries
+import traceback
 from typing import List
 
+# Third-Party Libraries
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+
+# Local Imports
 # Database imports
 from database.connection import get_db
 from database.models import FileStatus
+
+# Dependency imports
+from dependencies import verify_token
 
 # Schema imports
 from schemas.files import FileRegistryResponse
 
 # Service imports
-from services.collections import CollectionsService
-
-# Dependency imports
-from dependencies import verify_token
+from services.collection_service import CollectionService
 
 router = APIRouter(
     prefix="/files",
@@ -35,9 +40,9 @@ async def list_files_in_collection(
     """
     Lists all files associated with a given collection ID, with an optional filter for status.
     """
-    # Here we assume CollectionsService has a method to list files.
+    # Here we assume CollectionService has a method to list files.
     # This keeps the service logic encapsulated.
-    files = CollectionsService.list_files(collection_id, db, status)
+    files = CollectionService.list_files(collection_id, db, status)
     if files is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -68,7 +73,7 @@ async def update_file_status(
         )
     
     # The service layer handles the actual update logic.
-    updated_file = CollectionsService.update_file_status(file_id, status.upper(), db)
+    updated_file = CollectionService.update_file_status(file_id, status.upper(), db)
     if not updated_file:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -93,11 +98,10 @@ async def get_file_content(
 ):
     """Get the content of a file."""
     try:
-        return CollectionsService.get_file_content(file_id, db)
+        return CollectionService.get_file_content(file_id, db)
     except HTTPException as e:
         raise e
     except Exception as e:
-        import traceback
         print(f"Error retrieving file content: {str(e)}")
         print(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(

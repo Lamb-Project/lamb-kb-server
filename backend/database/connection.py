@@ -2,18 +2,21 @@
 Database connection module for SQLite and ChromaDB.
 """
 
-import os
+# Python Libraries
 import json
+import os
 from pathlib import Path
-from typing import Dict, Any, Union, Callable
+from typing import Any, Callable, Dict, Union
 
+# Third-Party Libraries
 import chromadb
 from chromadb.config import Settings as ChromaSettings
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction, OllamaEmbeddingFunction
 from sqlalchemy import create_engine, inspect
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 
-from .models import Base, Collection, Visibility
+# Local Imports
+from .models import Base, Collection
 
 # Database paths
 DATA_DIR = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) / "data"

@@ -1,7 +1,8 @@
 import os
 import json
 from typing import Dict, Any, List, Optional
-from routers import system, collections_router, files_router
+from backend.routers import system_router
+from routers import collections_router, files_router
 
 # Load environment variables from .env file
 try:
@@ -33,8 +34,8 @@ from schemas.collection import (
 
 # Import ingestion modules
 from plugins.base import discover_plugins
-from services.ingestion import IngestionService
-from services.query import QueryService
+from backend.services.ingestion_service import IngestionService
+from backend.services.query_service import QueryService
 from schemas.ingestion import (
     IngestionPluginInfo,
     IngestFileResponse,
@@ -95,7 +96,7 @@ app = FastAPI(
 from dependencies import verify_token
 
 # Import routers
-from routers import system, collections_router, files_router
+from routers import collections_router, files_router
 
 # Initialize databases on startup
 @app.on_event("startup")
@@ -119,9 +120,10 @@ async def startup_event():
     IngestionService._ensure_dirs()
 
 # Include routers
-app.include_router(system.router)
+app.include_router(system_router.router)
 app.include_router(collections_router.router)
 app.include_router(files_router.router)
+IngestionService._ensure_dirs()
 
 # Configure static files
 static_dir = IngestionService.STATIC_DIR

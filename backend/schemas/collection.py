@@ -4,9 +4,11 @@ Pydantic schemas for Collection API.
 This module defines the request and response models for the Collection API endpoints.
 """
 
+# Python Libraries
 from datetime import datetime
-from typing import Dict, Any, Optional, List
+from typing import List, Optional
 
+# Third-Party Libraries
 from pydantic import BaseModel, Field
 
 

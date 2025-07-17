@@ -5,12 +5,15 @@ This plugin handles various file formats by converting them to Markdown using Ma
 and then applying LangChain's text splitters for chunking.
 """
 
+# Python Libraries
+import json
 import os
 from pathlib import Path
-from typing import Dict, List, Any, Optional
-import json
-import markdown2
+from typing import Any, Dict, List
 from urllib.parse import urlparse, urlunparse
+
+# Third-Party Libraries
+import markdown2
 
 # Import LangChain text splitters
 from langchain_text_splitters import (

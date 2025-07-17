@@ -7,13 +7,22 @@ Supports both cloud and local Firecrawl instances.
 Uses LangChain's text splitters for text-structured based chunking.
 """
 
+# Python Libraries
 import os
 import time
-from typing import Dict, List, Any, Optional
-import json
-from pathlib import Path
+from typing import Any, Dict, List, Optional
 
+# Third-Party Libraries
 from dotenv import load_dotenv
+from firecrawl.firecrawl import FirecrawlApp
+from langchain_text_splitters import (
+    CharacterTextSplitter,
+    RecursiveCharacterTextSplitter,
+    TokenTextSplitter,
+)
+
+# Local Imports
+from .base import IngestPlugin, PluginRegistry
 
 # Load environment variables
 load_dotenv()
@@ -21,20 +30,6 @@ load_dotenv()
 # Get Firecrawl configuration from environment variables
 FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
 FIRECRAWL_API_URL = os.getenv("FIRECRAWL_API_URL", "")
-
-# Import Firecrawl SDK 
-from firecrawl.firecrawl import FirecrawlApp
-
-# Import LangChain text splitters
-from langchain_text_splitters import (
-    RecursiveCharacterTextSplitter,
-    CharacterTextSplitter,
-    TokenTextSplitter
-)
-
-# Import base plugin classes
-from .base import IngestPlugin, PluginRegistry
-
 
 @PluginRegistry.register
 class URLIngestPlugin(IngestPlugin): 

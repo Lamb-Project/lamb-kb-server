@@ -5,30 +5,29 @@ This plugin interfaces with the Perplexity Sonar API to perform deep research
 based on user queries and processes the results into chunks.
 """
 
-import os
-from typing import Dict, List, Any, Optional
+# Python Libraries
 import json
+import os
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-import requests # Added
+# Third-Party Libraries
 from dotenv import load_dotenv
+from langchain_text_splitters import (
+    CharacterTextSplitter,
+    RecursiveCharacterTextSplitter,
+    TokenTextSplitter,
+)
+import requests
+
+# Local Imports
+from .base import IngestPlugin, PluginRegistry
 
 # Load environment variables
 load_dotenv()
 
 # Get Perplexity configuration from environment variables
 PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
-
-# Import LangChain text splitters
-from langchain_text_splitters import (
-    RecursiveCharacterTextSplitter,
-    CharacterTextSplitter,
-    TokenTextSplitter
-)
-
-# Import base plugin classes
-from .base import IngestPlugin, PluginRegistry
-
 
 @PluginRegistry.register
 class PerplexitySonarPlugin(IngestPlugin):

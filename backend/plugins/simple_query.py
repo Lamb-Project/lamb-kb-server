@@ -4,14 +4,20 @@ Simple query plugin for similarity search.
 This plugin performs a simple similarity search on a collection.
 """
 
+# Python Libraries
 import time
-from typing import Dict, List, Any, Optional
+import uuid
+from typing import Any, Dict, List
 
+# Third-Party Libraries
 from sqlalchemy.orm import Session
 
+# Local Imports
+# Database imports
 from database.connection import get_chroma_client, get_embedding_function
-from database.models import Collection
 from database.service import CollectionService
+
+# Plugin imports
 from plugins.base import PluginRegistry, QueryPlugin
 
 
@@ -110,7 +116,6 @@ class SimpleQueryPlugin(QueryPlugin):
                     # If getting by name fails, try getting by name=uuid (as a fallback)
                     try:
                         # Check if collection_name might be a UUID
-                        import uuid
                         # Try to parse as UUID to validate if it looks like a UUID
                         try:
                             uuid_obj = uuid.UUID(collection_name)

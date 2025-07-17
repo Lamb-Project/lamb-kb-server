@@ -4,11 +4,13 @@ Schemas for document ingestion.
 This module defines Pydantic schemas for document ingestion requests and responses.
 """
 
-from enum import Enum
-from typing import Dict, List, Any, Optional, Union
+# Python Libraries
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, validator, AnyUrl
+# Third-Party Libraries
+from pydantic import BaseModel, Field, validator
 
+# Local Imports
 from plugins.base import ChunkUnit
 
 

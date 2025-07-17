@@ -4,8 +4,10 @@ Schemas for query requests and responses.
 This module defines Pydantic models for query operations.
 """
 
-from typing import Dict, List, Any, Optional
+# Python Libraries
+from typing import Any, Dict, List
 
+# Third-Party Libraries
 from pydantic import BaseModel, Field
 
 

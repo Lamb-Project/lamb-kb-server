@@ -4,19 +4,17 @@ Database service module for managing collections.
 This module provides service functions for managing collections in both SQLite and ChromaDB.
 """
 
-# Python Libraries
 import json
 from typing import Any, Dict, List, Optional
 
-# Third-Party Libraries
 from sqlalchemy.orm import Session
 
-# Local Imports
 from .connection import (
     get_chroma_client,
     get_embedding_function_by_params,
 )
 from .models import Collection, Visibility
+
 
 class CollectionService:
     """Service for managing collections in both SQLite and ChromaDB."""
@@ -28,6 +26,7 @@ class CollectionService:
         owner: str,
         description: Optional[str] = None,
         visibility: Visibility = Visibility.PRIVATE,
+
         embeddings_model: Optional[Dict[str, Any]] = None
     ) -> Collection:
         """Create a new collection in both SQLite and ChromaDB.

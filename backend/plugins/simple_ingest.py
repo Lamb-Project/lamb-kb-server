@@ -4,20 +4,17 @@ Simple ingestion plugin for text files.
 This plugin handles plain text files (txt, md) with chunking using LangChain's text splitters.
 """
 
-# Python Libraries
 import json
 import os
 from pathlib import Path
 from typing import Any, Dict, List
 
-# Third-Party Libraries
 from langchain_text_splitters import (
     CharacterTextSplitter,
     RecursiveCharacterTextSplitter,
     TokenTextSplitter,
 )
 
-# Local Imports
 from .base import IngestPlugin, PluginRegistry
 
 

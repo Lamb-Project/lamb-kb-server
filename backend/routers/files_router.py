@@ -1,24 +1,18 @@
-# Python Libraries
 import traceback
 from typing import List
 
-# Third-Party Libraries
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-# Local Imports
-# Database imports
 from database.connection import get_db
 from database.models import FileStatus
 
-# Dependency imports
 from dependencies import verify_token
 
-# Schema imports
 from schemas.files import FileRegistryResponse
 
-# Service imports
 from services.collection_service import CollectionService
+
 
 router = APIRouter(
     prefix="/files",

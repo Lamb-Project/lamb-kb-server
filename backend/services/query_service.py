@@ -4,21 +4,16 @@ Query service for retrieving data from collections.
 This module provides services for querying collections using query plugins.
 """
 
-# Python Libraries
 import time
 import traceback
 from typing import Any, Dict, List, Optional
 
-# Third-Party Libraries
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-# Local Imports
-# Database imports
 from backend.database.connection import get_chroma_client, get_embedding_function
 from database.service import CollectionService
 
-# Plugin imports
 from plugins.base import PluginRegistry, QueryPlugin
 
 

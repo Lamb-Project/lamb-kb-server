@@ -2,22 +2,18 @@
 Collection service module for handling collection-related business logic.
 """
 
-# Python Libraries
 import json
 from typing import Any, Dict, Optional
 
-# Third-Party Libraries
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-# Local Imports
-# Database imports
 from database.connection import get_embedding_function
 from database.models import Collection, Visibility
 from database.service import CollectionService as DBCollectionService
 
-# Schema imports
 from schemas.collection import CollectionCreate
+
 
 class CollectionService:
     """Service for handling collection-related operations."""

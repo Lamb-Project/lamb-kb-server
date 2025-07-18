@@ -4,7 +4,6 @@ Document ingestion service.
 This module provides services for ingesting documents into collections using various plugins.
 """
 
-# Python Libraries
 import json
 import os
 import time
@@ -14,17 +13,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-# Third-Party Librarie
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-# Local Imports
-# Database imports
 from database.connection import get_chroma_client, get_embedding_function
 from database.models import FileRegistry, FileStatus
 from database.service import CollectionService
 
-# Plugin imports
 from plugins.base import IngestPlugin, PluginRegistry
 
 

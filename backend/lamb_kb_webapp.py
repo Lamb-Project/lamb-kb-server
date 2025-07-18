@@ -10,17 +10,19 @@ This app allows users to:
 - Debug ChromaDB collections
 """
 
-import os
 import json
-import requests
-import chromadb
 import logging
+import os
 import sqlite3
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-from dotenv import load_dotenv
-from pathlib import Path
-from typing import Dict, Any, List, Optional
 import uuid
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import chromadb
+from dotenv import load_dotenv
+from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
+import requests
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

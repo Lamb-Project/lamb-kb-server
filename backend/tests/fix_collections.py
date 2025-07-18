@@ -6,15 +6,17 @@ Script to examine and fix ChromaDB collection issues by:
 3. Providing repair options
 """
 
-import os
-import sys
+import datetime
 import json
-import sqlite3
-import chromadb
 import logging
+import os
+import sqlite3
+import sys
 import uuid
 from pathlib import Path
-from datetime import datetime
+
+import chromadb
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

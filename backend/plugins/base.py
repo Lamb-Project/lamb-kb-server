@@ -4,7 +4,6 @@ Base plugin interface for ingestion strategies.
 This module defines the base plugin interface and registry for document ingestion strategies.
 """
 
-# Python Libraries
 import abc
 import importlib
 import os

@@ -4,13 +4,15 @@ Debug script to test embeddings throughout the collection lifecycle.
 This script creates a collection, ingests content, and queries it, while tracking embedding functions.
 """
 
+import json
 import os
 import sys
-import time
-import json
 import tempfile
+import time
+from typing import Any, Dict
+
 import requests
-from typing import Dict, Any
+
 
 # Set up API access
 BASE_URL = "http://localhost:9090"

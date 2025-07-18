@@ -3,13 +3,14 @@
 Script to check and compare collections in both SQLite and ChromaDB
 """
 
-import os
-import sys
 import json
-import sqlite3
-import chromadb
 import logging
+import os
+import sqlite3
 from pathlib import Path
+
+import chromadb
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

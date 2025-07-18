@@ -1,9 +1,7 @@
-# Python Libraries
 import json
 import os
 import uuid
 
-# Third-Party Libraries
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -17,24 +15,20 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-# Local Imports
-# Database imports
 from database.connection import get_chroma_client, get_db, SessionLocal
 from database.models import FileStatus
 from database.service import CollectionService
 
-# Dependency imports
 from dependencies import verify_token
 
-# Schema imports
 from schemas.collection import CollectionCreate, CollectionList, CollectionResponse, EmbeddingsModel
 from schemas.ingestion import AddDocumentsRequest, AddDocumentsResponse, IngestBaseRequest, IngestURLRequest
 from schemas.query import QueryRequest, QueryResponse
 
-# Service imports
 from backend.services.ingestion_service import IngestionService
 from backend.services.query_service import QueryService
 from services.collection_service import CollectionService
+
 
 router = APIRouter(
     prefix="/collections",

@@ -1,8 +1,7 @@
-# Python Libraries
 from typing import Any, Dict
 
-# Third-Party Libraries
 from pydantic import BaseModel, Field
+
 
 # Response models
 class HealthResponse(BaseModel):

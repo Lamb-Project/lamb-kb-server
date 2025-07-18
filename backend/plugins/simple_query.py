@@ -4,20 +4,15 @@ Simple query plugin for similarity search.
 This plugin performs a simple similarity search on a collection.
 """
 
-# Python Libraries
 import time
 import uuid
 from typing import Any, Dict, List
 
-# Third-Party Libraries
 from sqlalchemy.orm import Session
 
-# Local Imports
-# Database imports
 from database.connection import get_chroma_client, get_embedding_function
 from database.service import CollectionService
 
-# Plugin imports
 from plugins.base import PluginRegistry, QueryPlugin
 
 

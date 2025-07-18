@@ -6,11 +6,9 @@ This script extracts the OpenAPI schema from the FastAPI application
 and converts it into a readable markdown document.
 """
 
-import json
 import sys
 from pathlib import Path
 
-# Import the FastAPI app
 from main import app
 
 

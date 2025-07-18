@@ -1,12 +1,26 @@
 import os
-import json
-from typing import Dict, Any, List, Optional
+from typing import List
+
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+from database.connection import init_databases
+
+from plugins.base import discover_plugins
+
 from backend.routers import system_router
 from routers import collections_router, files_router
 
+from schemas.ingestion import IngestionPluginInfo
+
+from services.ingestion_service import IngestionService
+
+
+# --- Initial Setup/Configuration ---
 # Load environment variables from .env file
 try:
-    from dotenv import load_dotenv
     # Load the environment variables from .env file
     load_dotenv()
     print(f"INFO: Environment variables loaded from .env file")
@@ -14,38 +28,6 @@ try:
     print(f"INFO: EMBEDDINGS_MODEL={os.getenv('EMBEDDINGS_MODEL')}")
 except ImportError:
     print("WARNING: python-dotenv not installed, environment variables must be set manually")
-
-from fastapi import Depends, FastAPI, HTTPException, status, Query, File, Form, UploadFile, BackgroundTasks
-from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.openapi.utils import get_openapi
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
-
-# Database imports
-from database.connection import init_databases, get_db, get_chroma_client
-from database.models import Visibility, FileRegistry, FileStatus
-from database.service import CollectionService
-from schemas.collection import (
-    CollectionUpdate,
-    EmbeddingsModel
-)
-
-# Import ingestion modules
-from plugins.base import discover_plugins
-from backend.services.ingestion_service import IngestionService
-from backend.services.query_service import QueryService
-from schemas.ingestion import (
-    IngestionPluginInfo,
-    IngestFileResponse,
-    IngestURLResponse,
-)
-
-# Import query modules
-from schemas.query import (
-    QueryPluginInfo
-)
 
 # Get API key from environment variable or use default
 API_KEY = os.getenv("LAMB_API_KEY", "0p3n-w3bu!")

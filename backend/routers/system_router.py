@@ -1,23 +1,15 @@
-# Python Libraries
-from typing import Any, Dict
-
-# Third-Party Libraries
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-# Local Imports
-# Database imports
 from database.connection import Collection, get_chroma_client, get_db, init_databases
 from database.models import Collection
 
-# Dependency imports
 from dependencies import verify_token
 
-# Schema imports
 from schemas.system import DatabaseStatusResponse, HealthResponse, MessageResponse
 
-router = APIRouter()
 
+router = APIRouter()
 
 # Root endpoint with enhanced documentation
 @router.get(

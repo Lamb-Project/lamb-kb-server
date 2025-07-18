@@ -2,21 +2,17 @@
 File service module for handling file-related business logic.
 """
 
-# Python Libraries
 from typing import Any, Dict, List, Optional
 
-# Third-Party Libraries
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-# Local Imports
-# Database imports
 from database.connection import get_chroma_client
 from database.models import Collection, FileRegistry, FileStatus
 from database.service import CollectionService as DBCollectionService
 
-# Service imports
 from backend.services.ingestion_service import IngestionService
+
 
 class FileService:
     """Service for handling file-related operations."""

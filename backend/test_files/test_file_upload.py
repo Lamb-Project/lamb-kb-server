@@ -5,12 +5,14 @@ This script focuses specifically on testing the file upload functionality
 to diagnose issues with file ingestion.
 """
 
+import json
+import logging
 import os
 import sys
-import json
 import time
-import logging
+
 import requests
+
 
 # Configure logging
 logging.basicConfig(

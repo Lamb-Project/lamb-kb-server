@@ -4,13 +4,11 @@ Database models for the Lamb Knowledge Base Server.
 This module defines SQLAlchemy models for the application's database schema.
 """
 
-# Python Libraries
 import datetime
 import json
 from enum import Enum
 from typing import Any, Dict
 
-# Third-Party Libraries
 from sqlalchemy import (
     JSON,
     Column,
@@ -22,10 +20,10 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.schema import Enum as SQLAlchemyEnum
+from sqlalchemy import Enum as SQLAlchemyEnum
+
 
 Base = declarative_base()
-
 
 class Visibility(str, Enum):
     """Enum for collection visibility states."""

@@ -9,13 +9,14 @@ This script tests the complete workflow:
 4. Performing queries to test the system
 """
 
-import os
 import json
-import time
-import requests
-from pathlib import Path
-from typing import Dict, Any, List, Optional
 import logging
+import os
+import time
+from typing import Any, Dict, List, Optional
+
+import requests
+
 
 # Configure logging
 logging.basicConfig(

@@ -1,1 +1,0 @@
-Execute development environment: docker-compose --env-file ./backend/.env up -d --build

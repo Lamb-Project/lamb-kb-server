@@ -1,8 +1,7 @@
-# Python Libraries
 from typing import Any, Dict, Optional
 
-# Third-Party Libraries
 from pydantic import BaseModel, Field
+
 
 # Import file registry schemas
 class FileRegistryResponse(BaseModel):

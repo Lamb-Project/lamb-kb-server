@@ -14,7 +14,7 @@ services:
     volumes:
       - ./backend:/app/backend
       - ./static:/app/static
-      - kb-data:/app/data
+      #- kb-data:/app/data
     networks:
       - app-network
     depends_on:

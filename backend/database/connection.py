@@ -18,11 +18,11 @@ from .models import Base, Collection
 # Database paths
 DATA_DIR = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) / "data"
 SQLITE_DB_PATH = DATA_DIR / "lamb-kb-server.db"
-CHROMA_DB_PATH = DATA_DIR / "chromadb"
+CHROMA_DB_PATH = "/app/data"
 
 # Ensure the directories exist
 DATA_DIR.mkdir(exist_ok=True)
-CHROMA_DB_PATH.mkdir(exist_ok=True)
+Path(CHROMA_DB_PATH).mkdir(exist_ok=True)
 
 # Create SQLite engine
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{SQLITE_DB_PATH}"
@@ -31,7 +31,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Create ChromaDB client
 chroma_client = chromadb.PersistentClient(
-    path=str(CHROMA_DB_PATH),
+    path=CHROMA_DB_PATH,
     settings=ChromaSettings(
         anonymized_telemetry=False,
         allow_reset=True

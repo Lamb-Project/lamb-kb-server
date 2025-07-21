@@ -13,12 +13,8 @@ services:
       - FIRECRAWL_API_URL=${FIRECRAWL_API_URL}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
     volumes:
-      # Mounts the backend source code for live-reloading during development.
       - ./backend:/app/backend
-      # Mounts the static files directory.
       - ./static:/app/static
-      # Use a named volume for the database, mounted to the non-root user's home directory.
-      # This is the most reliable way to handle data persistence and permissions in distroless containers.
       - kb-data:/home/nonroot/data
     networks:
       - app-network
@@ -57,8 +53,6 @@ networks:
   app-network:
     driver: bridge
 
-# Defines the named volumes used by the services.
-# Docker manages the permissions for these volumes, ensuring the container can write to them.
 volumes:
   kb-data:
     name: lamb-kb-data

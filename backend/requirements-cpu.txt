@@ -1,0 +1,9 @@
+# Inherit all common packages from the base file
+-r requirements-base.txt
+
+# Add the CPU-only version of PyTorch for a smaller image size.
+# This dramatically reduces the image size without affecting performance,
+# as the container cannot access a GPU anyway.
+torch --index-url https://download.pytorch.org/whl/cpu
+torchvision --index-url https://download.pytorch.org/whl/cpu
+torchaudio --index-url https://download.pytorch.org/whl/cpu

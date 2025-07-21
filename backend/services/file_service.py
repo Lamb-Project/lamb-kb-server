@@ -11,7 +11,7 @@ from database.connection import get_chroma_client
 from database.models import Collection, FileRegistry, FileStatus
 from database.service import CollectionService as DBCollectionService
 
-from backend.services.ingestion_service import IngestionService
+from services.ingestion_service import IngestionService
 
 
 class FileService:

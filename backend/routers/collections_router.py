@@ -25,8 +25,8 @@ from schemas.collection import CollectionCreate, CollectionList, CollectionRespo
 from schemas.ingestion import AddDocumentsRequest, AddDocumentsResponse, IngestBaseRequest, IngestURLRequest
 from schemas.query import QueryRequest, QueryResponse
 
-from backend.services.ingestion_service import IngestionService
-from backend.services.query_service import QueryService
+from services.ingestion_service import IngestionService
+from services.query_service import QueryService
 from services.collection_service import CollectionService
 
 

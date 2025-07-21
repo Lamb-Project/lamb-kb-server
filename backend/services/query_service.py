@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from backend.database.connection import get_chroma_client, get_embedding_function
+from database.connection import get_chroma_client, get_embedding_function
 from database.service import CollectionService
 
 from plugins.base import PluginRegistry, QueryPlugin

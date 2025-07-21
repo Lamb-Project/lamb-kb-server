@@ -1,31 +1,43 @@
-FROM python:3.11-slim-bookworm AS base
+# ---- Base Stage ----
+FROM python:3.11-slim-bookworm as base
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 
-FROM base AS builder
+# ---- Builder Stage ----
+FROM base as builder
+
+# This makes the CPU version the default if no argument is provided
+ARG REQUIREMENTS_FILE=requirements-cpu.txt
 
 WORKDIR /app
 
 RUN pip install --upgrade pip
-COPY backend/requirements.txt .
+
+# Copy the base requirements file first
+COPY backend/requirements-base.txt ./
+
+# Copy the selected requirements file (e.g., requirements-cpu.txt)
+COPY backend/${REQUIREMENTS_FILE} ./requirements.txt
+
+# Now pip can find both files and install correctly
 RUN pip install --no-cache-dir -r requirements.txt --target /app/deps
 
+# Copy the rest of the backend code
 COPY backend/ .
 
-# Create a dedicated, writable directory for the database
 RUN mkdir -p /app/data
 RUN mkdir -p static
 RUN touch .env
 
 
+# ---- Final Stage ----
 FROM gcr.io/distroless/python3-debian12 as final
 
 WORKDIR /app
-
 COPY --from=builder --chown=nonroot:nonroot /app /app
-ENV PYTHONPATH=/app/deps
 
+ENV PYTHONPATH=/app/deps
 USER nonroot
 EXPOSE 9090
 

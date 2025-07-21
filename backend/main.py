@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 import config
-from backend.routers import system_router
+from routers import system_router
 from database.connection import init_databases
 from dependencies import verify_token
 from plugins.base import discover_plugins

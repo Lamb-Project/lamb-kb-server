@@ -2,8 +2,7 @@ services:
   backend:
     image: lamb-kb-server-backend:gpu
     build:
-      context: .
-      dockerfile: Dockerfile.server
+      context: ./backend
       args:
         - REQUIREMENTS_FILE=requirements-gpu.txt
     ports:

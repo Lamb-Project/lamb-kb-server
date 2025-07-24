@@ -4,10 +4,9 @@ Debug script to test OpenAI API key handling.
 """
 
 import os
-import json
-import openai
 from dotenv import load_dotenv
 from openai import OpenAI
+
 
 # Load environment variables from .env
 load_dotenv()

@@ -4,17 +4,16 @@ Database service module for managing collections.
 This module provides service functions for managing collections in both SQLite and ChromaDB.
 """
 
-import os
 import json
-import chromadb
-from pathlib import Path
-from typing import List, Dict, Any, Optional, Union
-from datetime import datetime
-from sqlalchemy.orm import Session
-from sqlalchemy import desc, asc
+from typing import Any, Dict, List, Optional
 
+from sqlalchemy.orm import Session
+
+from .connection import (
+    get_chroma_client,
+    get_embedding_function_by_params,
+)
 from .models import Collection, Visibility
-from .connection import get_db, get_chroma_client, get_embedding_function, get_embedding_function_by_params
 
 
 class CollectionService:
@@ -27,6 +26,7 @@ class CollectionService:
         owner: str,
         description: Optional[str] = None,
         visibility: Visibility = Visibility.PRIVATE,
+
         embeddings_model: Optional[Dict[str, Any]] = None
     ) -> Collection:
         """Create a new collection in both SQLite and ChromaDB.
@@ -48,7 +48,6 @@ class CollectionService:
             print(f"ERROR: [create_collection] {error_msg}")
             raise ValueError(error_msg)
         
-        # Create ChromaDB collection
         chroma_client = get_chroma_client()
         
         # Get the appropriate embedding function based on model configuration
@@ -66,7 +65,6 @@ class CollectionService:
                 print(f"ERROR: [create_collection] Failed to create embedding function: {str(e)}")
                 raise ValueError(f"Failed to create embedding function: {str(e)}")
         
-        # Prepare collection parameters
         collection_params = {
             "name": name,
             "metadata": {
@@ -168,10 +166,8 @@ class CollectionService:
         Returns:
             List of collections
         """
-        # Build query
         query = db.query(Collection)
         
-        # Apply filters if provided
         if owner:
             query = query.filter(Collection.owner == owner)
         if visibility:
@@ -237,11 +233,9 @@ class CollectionService:
             current_conf['apikey'] = apikey
         db_collection.embeddings_model = current_conf
 
-        # Commit SQLite changes
         db.commit()
         db.refresh(db_collection)
 
-        # Rename ChromaDB collection if name changed
         if name and name != old_name:
             client = get_chroma_client()
             chroma_col = client.get_collection(old_name)
@@ -266,7 +260,6 @@ class CollectionService:
         if not db_collection:
             return False
         
-        # Delete from ChromaDB
         collection_name = db_collection.name
         chroma_client = get_chroma_client()
         try:
@@ -274,7 +267,6 @@ class CollectionService:
         except Exception as e:
             print(f"Error deleting ChromaDB collection: {e}")
         
-        # Delete from SQLite
         db.delete(db_collection)
         db.commit()
         

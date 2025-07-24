@@ -4,17 +4,17 @@ Simple ingestion plugin for text files.
 This plugin handles plain text files (txt, md) with chunking using LangChain's text splitters.
 """
 
+import json
 import os
 from pathlib import Path
-from typing import Dict, List, Any, Optional
-import json
+from typing import Any, Dict, List
 
-# Import LangChain text splitters
 from langchain_text_splitters import (
-    RecursiveCharacterTextSplitter,
     CharacterTextSplitter,
-    TokenTextSplitter
+    RecursiveCharacterTextSplitter,
+    TokenTextSplitter,
 )
+
 from .base import IngestPlugin, PluginRegistry
 
 
@@ -70,7 +70,6 @@ class SimpleIngestPlugin(IngestPlugin):
                 - text: The chunk text
                 - metadata: A dictionary of metadata for the chunk
         """
-        # Extract parameters
         chunk_size = kwargs.get("chunk_size", None)
         chunk_overlap = kwargs.get("chunk_overlap", None)
         splitter_type = kwargs.get("splitter_type", "RecursiveCharacterTextSplitter")
@@ -83,7 +82,6 @@ class SimpleIngestPlugin(IngestPlugin):
         if chunk_overlap is not None:
             splitter_params["chunk_overlap"] = chunk_overlap
         
-        # Read the file
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()

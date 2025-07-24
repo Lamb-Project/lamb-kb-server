@@ -4,15 +4,15 @@ Script to diagnose ChromaDB collection issues by analyzing ChromaDB internals.
 This script is read-only and doesn't make any changes to the database.
 """
 
-import os
-import sys
 import json
-import sqlite3
-import chromadb
 import logging
+import os
+import sqlite3
 import uuid
 from pathlib import Path
-from datetime import datetime
+
+import chromadb
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

@@ -5,7 +5,9 @@ Run script for the Lamb Knowledge Base Web Application
 
 import os
 from pathlib import Path
+
 from lamb_kb_webapp import app
+
 
 if __name__ == '__main__':
     # Create templates directory if it doesn't exist

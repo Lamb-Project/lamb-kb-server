@@ -7,13 +7,23 @@ This module defines SQLAlchemy models for the application's database schema.
 import datetime
 import json
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Any, Dict
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, JSON, ForeignKey, Enum as SQLAlchemyEnum, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Enum as SQLAlchemyEnum
+
 
 Base = declarative_base()
-
 
 class Visibility(str, Enum):
     """Enum for collection visibility states."""

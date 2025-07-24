@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field
-from typing import Dict, Any
+from typing import Any, Dict
 
-# Response models
+from pydantic import BaseModel, Field
+
+
 class HealthResponse(BaseModel):
     """Model for health check responses"""
     status: str = Field(..., description="Status of the server", example="ok")

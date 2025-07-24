@@ -4,23 +4,23 @@ Document ingestion service.
 This module provides services for ingesting documents into collections using various plugins.
 """
 
-import os
-import shutil
-import uuid
 import json
+import os
 import time
+import traceback
+import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional, BinaryIO, Union
+from typing import Any, Dict, List, Optional, Union
 
-import chromadb
-from fastapi import UploadFile, HTTPException
+from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from database.connection import get_chroma_client, get_embedding_function
-from database.models import Collection, FileRegistry, FileStatus
+from database.models import FileRegistry, FileStatus
 from database.service import CollectionService
-from plugins.base import PluginRegistry, IngestPlugin
+
+from plugins.base import IngestPlugin, PluginRegistry
 
 
 class IngestionService:
@@ -119,7 +119,6 @@ class IngestionService:
             return result
         except Exception as e:
             print(f"DEBUG: [save_uploaded_file] ERROR saving file: {str(e)}")
-            import traceback
             print(f"DEBUG: [save_uploaded_file] Stack trace:\n{traceback.format_exc()}")
             raise
     
@@ -154,7 +153,6 @@ class IngestionService:
         Returns:
             The created FileRegistry entry
         """
-        # Get file size
         file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
         
         # Ensure plugin_params is a dict, not a string
@@ -272,7 +270,6 @@ class IngestionService:
         print(f"DEBUG: [ingest_file] Using plugin: {plugin_name}")
         print(f"DEBUG: [ingest_file] Plugin params: {plugin_params}")
         
-        # Check file exists
         if not os.path.exists(file_path):
             print(f"DEBUG: [ingest_file] ERROR: File does not exist: {file_path}")
             raise HTTPException(
@@ -280,7 +277,6 @@ class IngestionService:
                 detail=f"File not found: {file_path}"
             )
         
-        # Get file size
         file_size = os.path.getsize(file_path)
         print(f"DEBUG: [ingest_file] File size: {file_size} bytes")
         
@@ -312,7 +308,6 @@ class IngestionService:
             
         except Exception as e:
             print(f"DEBUG: [ingest_file] ERROR during ingestion: {str(e)}")
-            import traceback
             print(f"DEBUG: [ingest_file] Stack trace:\n{traceback.format_exc()}")
             raise HTTPException(
                 status_code=400,
@@ -348,9 +343,8 @@ class IngestionService:
         """
         print(f"DEBUG: [add_documents_to_collection] Starting for collection_id: {collection_id}")
         print(f"DEBUG: [add_documents_to_collection] Number of documents: {len(documents)}")
-        
-        # Get the collection
         print(f"DEBUG: [add_documents_to_collection] Getting collection from database")
+
         db_collection = CollectionService.get_collection(db, collection_id)
         if not db_collection:
             print(f"DEBUG: [add_documents_to_collection] ERROR: Collection not found")
@@ -375,7 +369,6 @@ class IngestionService:
         model_name = embedding_config.get("model", "")
         print(f"DEBUG: [add_documents_to_collection] Using embeddings - vendor: {vendor}, model: {model_name}")
         
-        # Get ChromaDB client
         print(f"DEBUG: [add_documents_to_collection] Getting ChromaDB client")
         chroma_client = get_chroma_client()
         
@@ -384,7 +377,6 @@ class IngestionService:
         try:
             print(f"DEBUG: [add_documents_to_collection] Creating embedding function from collection record")
             # Pass collection or collection_id to get_embedding_function
-            from database.connection import get_embedding_function
             collection_embedding_function = get_embedding_function(db_collection)
             print(f"DEBUG: [add_documents_to_collection] Created embedding function: {collection_embedding_function is not None}")
             
@@ -393,7 +385,6 @@ class IngestionService:
             print(f"DEBUG: [add_documents_to_collection] Embedding function test successful, dimensions: {len(test_result[0])}")
         except Exception as ef_e:
             print(f"DEBUG: [add_documents_to_collection] ERROR creating embedding function: {str(ef_e)}")
-            import traceback
             print(f"DEBUG: [add_documents_to_collection] Stack trace:\n{traceback.format_exc()}")
             raise HTTPException(
                 status_code=500,
@@ -470,7 +461,6 @@ class IngestionService:
             raise
         except Exception as e:
             print(f"DEBUG: [add_documents_to_collection] ERROR with ChromaDB collection: {str(e)}")
-            import traceback
             print(f"DEBUG: [add_documents_to_collection] Stack trace:\n{traceback.format_exc()}")
             raise HTTPException(
                 status_code=500,
@@ -508,7 +498,6 @@ class IngestionService:
                 print(f"DEBUG: [add_documents_to_collection] First document sample: {texts[0][:100]}...")
             
             # Add timing for performance monitoring
-            import time
             start_time = time.time()
             
             # Add documents in smaller batches for better error handling and progress tracking
@@ -546,7 +535,6 @@ class IngestionService:
             }
         except Exception as e:
             print(f"DEBUG: [add_documents_to_collection] ERROR adding documents to ChromaDB: {str(e)}")
-            import traceback
             print(f"DEBUG: [add_documents_to_collection] Stack trace:\n{traceback.format_exc()}")
             
             # Try to provide more specific error information

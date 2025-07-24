@@ -9,31 +9,23 @@ Uses LangChain's text splitters for text-structured based chunking.
 
 import os
 import time
-from typing import Dict, List, Any, Optional
-import json
-from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
-
-# Get Firecrawl configuration from environment variables
-FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
-FIRECRAWL_API_URL = os.getenv("FIRECRAWL_API_URL", "")
-
-# Import Firecrawl SDK 
 from firecrawl.firecrawl import FirecrawlApp
-
-# Import LangChain text splitters
 from langchain_text_splitters import (
-    RecursiveCharacterTextSplitter,
     CharacterTextSplitter,
-    TokenTextSplitter
+    RecursiveCharacterTextSplitter,
+    TokenTextSplitter,
 )
 
-# Import base plugin classes
 from .base import IngestPlugin, PluginRegistry
+
+
+load_dotenv()
+
+FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY", "")
+FIRECRAWL_API_URL = os.getenv("FIRECRAWL_API_URL", "")
 
 
 @PluginRegistry.register
@@ -48,7 +40,6 @@ class URLIngestPlugin(IngestPlugin):
     def __init__(self):
         """Initialize the plugin with Firecrawl app."""
         super().__init__()
-        # Initialize Firecrawl app
         self.firecrawl_app: Optional[FirecrawlApp] = self._init_firecrawl()
     
     def _init_firecrawl(self) -> Optional[FirecrawlApp]:
@@ -140,7 +131,6 @@ class URLIngestPlugin(IngestPlugin):
             print("ERROR: [url_ingest] Firecrawl App not initialized. This could be due to a missing API key for the cloud service, the SDK not being installed correctly, or other configuration issues during plugin initialization. Cannot ingest.")
             raise ValueError("Firecrawl App not initialized. Please check plugin initialization logs. If using Firecrawl cloud service, ensure FIRECRAWL_API_KEY is set.")
 
-        # Extract parameters
         chunk_size = kwargs.get("chunk_size", None)
         chunk_overlap = kwargs.get("chunk_overlap", None)
         splitter_type = kwargs.get("splitter_type", "RecursiveCharacterTextSplitter")

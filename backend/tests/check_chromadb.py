@@ -3,11 +3,13 @@
 Simple script to check ChromaDB collections
 """
 
-import os
-import chromadb
-import logging
 import json
+import logging
+import os
 import sys
+
+import chromadb
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

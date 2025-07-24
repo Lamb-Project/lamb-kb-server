@@ -1,6 +1,8 @@
 import os
+
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
 
 # Get API key from environment variable or use default
 API_KEY = os.getenv("LAMB_API_KEY", "0p3n-w3bu!")

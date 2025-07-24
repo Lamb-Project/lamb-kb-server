@@ -6,11 +6,10 @@ This module defines the base plugin interface and registry for document ingestio
 
 import abc
 import importlib
-import inspect
 import os
 import pkgutil
-from enum import Enum, auto
-from typing import Dict, List, Type, Any, Optional, Set, Tuple, Union
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Type, Union
 
 
 class ChunkUnit(str, Enum):

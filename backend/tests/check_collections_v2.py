@@ -4,13 +4,15 @@ Script to check and compare collections in both SQLite and ChromaDB
 (Updated for ChromaDB v0.6.0+)
 """
 
-import os
-import sys
 import json
-import sqlite3
-import chromadb
 import logging
+import os
+import sqlite3
+import traceback
 from pathlib import Path
+
+import chromadb
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -137,7 +139,6 @@ def check_chromadb_collections():
         
     except Exception as e:
         logger.error(f"Error checking ChromaDB: {e}")
-        import traceback
         logger.error(traceback.format_exc())
         return []
 
@@ -281,7 +282,6 @@ def check_for_collection_name_mismatch():
             
     except Exception as e:
         logger.error(f"Error checking for collection name mismatches: {e}")
-        import traceback
         logger.error(traceback.format_exc())
         return {}
 

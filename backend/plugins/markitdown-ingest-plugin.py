@@ -5,20 +5,20 @@ This plugin handles various file formats by converting them to Markdown using Ma
 and then applying LangChain's text splitters for chunking.
 """
 
+import json
 import os
 from pathlib import Path
-from typing import Dict, List, Any, Optional
-import json
-import markdown2
+from typing import Any, Dict, List
 from urllib.parse import urlparse, urlunparse
 
-# Import LangChain text splitters
 from langchain_text_splitters import (
-    RecursiveCharacterTextSplitter,
     CharacterTextSplitter,
-    TokenTextSplitter
+    RecursiveCharacterTextSplitter,
+    TokenTextSplitter,
 )
+import markdown2
 from markitdown import MarkItDown
+
 from .base import IngestPlugin, PluginRegistry
 
 
@@ -1250,7 +1250,6 @@ class MarkItDownIngestPlugin(IngestPlugin):
             # Initialize MarkItDown with default settings
             md = MarkItDown()
             
-            # Convert the file to Markdown
             result = md.convert(file_path)
             content = result.text_content
             

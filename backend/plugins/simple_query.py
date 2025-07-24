@@ -5,13 +5,14 @@ This plugin performs a simple similarity search on a collection.
 """
 
 import time
-from typing import Dict, List, Any, Optional
+import uuid
+from typing import Any, Dict, List
 
 from sqlalchemy.orm import Session
 
 from database.connection import get_chroma_client, get_embedding_function
-from database.models import Collection
 from database.service import CollectionService
+
 from plugins.base import PluginRegistry, QueryPlugin
 
 
@@ -65,7 +66,6 @@ class SimpleQueryPlugin(QueryPlugin):
         Raises:
             ValueError: If the collection is not found
         """
-        # Extract parameters
         top_k = kwargs.get("top_k", 5)
         threshold = kwargs.get("threshold", 0.0)
         db = kwargs.get("db")
@@ -89,7 +89,6 @@ class SimpleQueryPlugin(QueryPlugin):
             # Get collection name - handle both dict-like and attribute access
             collection_name = collection['name'] if isinstance(collection, dict) else collection.name
             
-            # Get ChromaDB client and collection
             chroma_client = get_chroma_client()
             try:
                 # Get the embedding function for this collection if not provided
@@ -110,7 +109,6 @@ class SimpleQueryPlugin(QueryPlugin):
                     # If getting by name fails, try getting by name=uuid (as a fallback)
                     try:
                         # Check if collection_name might be a UUID
-                        import uuid
                         # Try to parse as UUID to validate if it looks like a UUID
                         try:
                             uuid_obj = uuid.UUID(collection_name)
@@ -133,7 +131,6 @@ class SimpleQueryPlugin(QueryPlugin):
         else:
             print(f"DEBUG: [simple_query] Using provided ChromaDB collection")
         
-        # Record start time
         start_time = time.time()
         
         # Perform query
@@ -142,7 +139,6 @@ class SimpleQueryPlugin(QueryPlugin):
             n_results=top_k
         )
         
-        # Record end time
         end_time = time.time()
         
         # Calculate elapsed time in milliseconds
@@ -168,5 +164,4 @@ class SimpleQueryPlugin(QueryPlugin):
         return formatted_results
 
 
-# Initialize plugin
 simple_query_plugin = SimpleQueryPlugin()

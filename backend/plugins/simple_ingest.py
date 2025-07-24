@@ -70,7 +70,6 @@ class SimpleIngestPlugin(IngestPlugin):
                 - text: The chunk text
                 - metadata: A dictionary of metadata for the chunk
         """
-        # Extract parameters
         chunk_size = kwargs.get("chunk_size", None)
         chunk_overlap = kwargs.get("chunk_overlap", None)
         splitter_type = kwargs.get("splitter_type", "RecursiveCharacterTextSplitter")
@@ -83,7 +82,6 @@ class SimpleIngestPlugin(IngestPlugin):
         if chunk_overlap is not None:
             splitter_params["chunk_overlap"] = chunk_overlap
         
-        # Read the file
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()

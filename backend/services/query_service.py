@@ -192,17 +192,14 @@ class QueryService:
                     detail=f"Failed to prepare embedding function: {str(ef_e)}"
                 )
             
-            # Record start time
             start_time = time.time()
             
-            # Execute query
             results = plugin.query(
                 collection_id=collection_id,
                 query_text=query_text,
                 **params
             )
             
-            # Record end time
             end_time = time.time()
             elapsed_time = end_time - start_time
             

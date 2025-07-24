@@ -15,7 +15,6 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from .models import Base, Collection
 
-# Database paths
 DATA_DIR = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) / "data"
 SQLITE_DB_PATH = DATA_DIR / "lamb-kb-server.db"
 CHROMA_DB_PATH = "/app/data"

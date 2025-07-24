@@ -66,7 +66,6 @@ class SimpleQueryPlugin(QueryPlugin):
         Raises:
             ValueError: If the collection is not found
         """
-        # Extract parameters
         top_k = kwargs.get("top_k", 5)
         threshold = kwargs.get("threshold", 0.0)
         db = kwargs.get("db")
@@ -90,7 +89,6 @@ class SimpleQueryPlugin(QueryPlugin):
             # Get collection name - handle both dict-like and attribute access
             collection_name = collection['name'] if isinstance(collection, dict) else collection.name
             
-            # Get ChromaDB client and collection
             chroma_client = get_chroma_client()
             try:
                 # Get the embedding function for this collection if not provided
@@ -133,7 +131,6 @@ class SimpleQueryPlugin(QueryPlugin):
         else:
             print(f"DEBUG: [simple_query] Using provided ChromaDB collection")
         
-        # Record start time
         start_time = time.time()
         
         # Perform query
@@ -142,7 +139,6 @@ class SimpleQueryPlugin(QueryPlugin):
             n_results=top_k
         )
         
-        # Record end time
         end_time = time.time()
         
         # Calculate elapsed time in milliseconds
@@ -168,5 +164,4 @@ class SimpleQueryPlugin(QueryPlugin):
         return formatted_results
 
 
-# Initialize plugin
 simple_query_plugin = SimpleQueryPlugin()

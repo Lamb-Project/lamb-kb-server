@@ -36,7 +36,6 @@ router = APIRouter(
     dependencies=[Depends(verify_token)]
 )
 
-# Helper function to get and validate collection existence in both databases
 def _get_and_validate_collection(db: Session, collection_id: int):
     """
     Retrieves a collection by ID from SQLite and validates its existence in ChromaDB.

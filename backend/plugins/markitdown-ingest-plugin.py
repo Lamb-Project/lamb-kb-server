@@ -1250,7 +1250,6 @@ class MarkItDownIngestPlugin(IngestPlugin):
             # Initialize MarkItDown with default settings
             md = MarkItDown()
             
-            # Convert the file to Markdown
             result = md.convert(file_path)
             content = result.text_content
             

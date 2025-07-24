@@ -21,10 +21,8 @@ import requests
 from .base import IngestPlugin, PluginRegistry
 
 
-# Load environment variables
 load_dotenv()
 
-# Get Perplexity configuration from environment variables
 PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY")
 
 
@@ -118,7 +116,6 @@ class PerplexitySonarPlugin(IngestPlugin):
             print("ERROR: [perplexity_sonar_plugin] Perplexity API key not configured. Cannot ingest.")
             raise ValueError("Perplexity API key not configured. Please set PERPLEXITY_API_KEY environment variable.")
 
-        # Extract parameters
         query = kwargs.get("query")
         if not query:
             raise ValueError("No query provided. Please provide a 'query' for Perplexity Sonar.")

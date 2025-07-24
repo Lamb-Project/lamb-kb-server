@@ -34,8 +34,7 @@ async def list_files_in_collection(
     """
     Lists all files associated with a given collection ID, with an optional filter for status.
     """
-    # Here we assume CollectionService has a method to list files.
-    # This keeps the service logic encapsulated.
+    # This keeps the service logic encapsulated
     files = CollectionService.list_files(collection_id, db, status)
     if files is None:
         raise HTTPException(
@@ -59,14 +58,14 @@ async def update_file_status(
     Updates the status of a file registry entry.
     Validates the provided status against the FileStatus enum.
     """
-    # Validate that the status is a valid choice.
+    # Validate that the status is a valid choice
     if status.upper() not in FileStatus.__members__:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid status '{status}'. Valid statuses are: {', '.join(FileStatus.__members__.keys())}"
         )
     
-    # The service layer handles the actual update logic.
+    # The service layer handles the actual update logic
     updated_file = CollectionService.update_file_status(file_id, status.upper(), db)
     if not updated_file:
         raise HTTPException(

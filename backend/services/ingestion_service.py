@@ -153,7 +153,6 @@ class IngestionService:
         Returns:
             The created FileRegistry entry
         """
-        # Get file size
         file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
         
         # Ensure plugin_params is a dict, not a string
@@ -271,7 +270,6 @@ class IngestionService:
         print(f"DEBUG: [ingest_file] Using plugin: {plugin_name}")
         print(f"DEBUG: [ingest_file] Plugin params: {plugin_params}")
         
-        # Check file exists
         if not os.path.exists(file_path):
             print(f"DEBUG: [ingest_file] ERROR: File does not exist: {file_path}")
             raise HTTPException(
@@ -279,7 +277,6 @@ class IngestionService:
                 detail=f"File not found: {file_path}"
             )
         
-        # Get file size
         file_size = os.path.getsize(file_path)
         print(f"DEBUG: [ingest_file] File size: {file_size} bytes")
         
@@ -346,9 +343,8 @@ class IngestionService:
         """
         print(f"DEBUG: [add_documents_to_collection] Starting for collection_id: {collection_id}")
         print(f"DEBUG: [add_documents_to_collection] Number of documents: {len(documents)}")
-        
-        # Get the collection
         print(f"DEBUG: [add_documents_to_collection] Getting collection from database")
+
         db_collection = CollectionService.get_collection(db, collection_id)
         if not db_collection:
             print(f"DEBUG: [add_documents_to_collection] ERROR: Collection not found")
@@ -373,7 +369,6 @@ class IngestionService:
         model_name = embedding_config.get("model", "")
         print(f"DEBUG: [add_documents_to_collection] Using embeddings - vendor: {vendor}, model: {model_name}")
         
-        # Get ChromaDB client
         print(f"DEBUG: [add_documents_to_collection] Getting ChromaDB client")
         chroma_client = get_chroma_client()
         

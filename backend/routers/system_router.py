@@ -97,10 +97,8 @@ async def database_status(token: str = Depends(verify_token), db: Session = Depe
     # Re-initialize databases to get fresh status
     db_status = init_databases()
     
-    # Count collections in SQLite
     collections_count = db.query(Collection).count()
     
-    # Get ChromaDB collections
     chroma_client = get_chroma_client()
     chroma_collections = chroma_client.list_collections()
     

@@ -11,7 +11,6 @@ DEFAULT_EMBEDDINGS_VENDOR = os.getenv("EMBEDDINGS_VENDOR", "ollama")
 DEFAULT_EMBEDDINGS_APIKEY = os.getenv("EMBEDDINGS_APIKEY", "")
 DEFAULT_EMBEDDINGS_ENDPOINT = os.getenv("EMBEDDINGS_ENDPOINT", "http://localhost:11434/api/embeddings")
 
-# For development, allow all origins. For production, you should restrict
-# this to your frontend's domain.
+# For development, allow all origins. For production, you should restrict this to your frontend's domain.
 # Example: CORS_ORIGINS = ["http://localhost:3000", "https://your-frontend.com"]
 CORS_ORIGINS = ["*"]

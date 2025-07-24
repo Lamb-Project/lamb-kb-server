@@ -3,7 +3,6 @@ from typing import Any, Dict
 from pydantic import BaseModel, Field
 
 
-# Response models
 class HealthResponse(BaseModel):
     """Model for health check responses"""
     status: str = Field(..., description="Status of the server", example="ok")

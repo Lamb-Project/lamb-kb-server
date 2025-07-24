@@ -1,9 +1,4 @@
-FROM python:3.11-slim-bookworm as base
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-
-
-FROM base as builder
+FROM python:3.11-slim-bookworm as builder
 
 ARG REQUIREMENTS_FILE=requirements-cpu.txt
 

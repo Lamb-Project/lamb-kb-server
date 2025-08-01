@@ -5,7 +5,9 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from database.connection import engine, Base
 import config
 from routers import system_router
 from database.connection import init_databases
@@ -24,9 +26,18 @@ try:
 except ImportError:
     print("WARNING: python-dotenv not installed, environment variables must be set manually")
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # This code runs on startup
+    print("INFO:     Creating database tables...")
+    Base.metadata.create_all(bind=engine)
+    yield
+    # This code runs on shutdown (optional)
+    print("INFO:     Application shutdown.")
 
 app = FastAPI(
     title="Lamb Knowledge Base Server",
+    lifespan=lifespan,
     description="""A dedicated knowledge base server designed to provide robust vector database functionality
     for the LAMB project and to serve as a Model Context Protocol (MCP) server.
 

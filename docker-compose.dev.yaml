@@ -20,6 +20,15 @@ services:
       - app-network
     depends_on:
       - ollama
+  
+  backend-tests:
+    build:
+      context: ./backend
+      target: builder
+    volumes:
+      - ./backend:/app
+    env_file:
+      - backend/.env 
 
   frontend:
     build:

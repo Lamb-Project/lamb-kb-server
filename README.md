@@ -85,8 +85,9 @@ The diagnostics page helps identify and fix common issues like:
 git clone git@github.com:Lamb-Project/lamb-kb-server.git
 ```
 2. Rename the ``.env.example``  to ``.env``.
-3. Execute ``docker-compose up -d`` for development and ``docker-compose -f docker-compose.prod.yaml up -d`` for production.
+3. Execute ``docker-compose -f docker-compose.dev.yaml up -d`` for development and ``docker-compose -f docker-compose.prod.yaml up -d`` for production.
 4. You have a ready development/production environment running.
+5. Running unit and integration tests: ``docker compose -f docker-compose.dev.yaml --env-file backend/.env run --rm backend-tests /opt/deps/bin/pytest tests/``
 
 **NOTE**: development uses only CPU. If you want to use the GPU you need to modify the docker-compose.prod.yaml file accordingly to the specific GPU you have.
 

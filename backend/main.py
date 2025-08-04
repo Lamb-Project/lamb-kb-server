@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 import os
 from typing import List
 
@@ -5,15 +6,12 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from database.connection import engine, Base
+
 import config
-from routers import system_router
-from database.connection import init_databases
+from database.connection import Base, engine, init_databases
 from dependencies import verify_token
 from plugins.base import discover_plugins
-from routers import collections_router, files_router
+from routers import collections_router, files_router, system_router
 from schemas.ingestion import IngestionPluginInfo
 from services.ingestion_service import IngestionService
 

@@ -20,20 +20,6 @@ services:
     depends_on:
       - ollama
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "8501:8501"
-    environment:
-      - API_BASE_URL=http://backend:9090
-      - API_TOKEN=0p3n-w3bu!
-    depends_on:
-      - backend
-    networks:
-      - app-network
-
   ollama:
     build:
       context: ./ollama

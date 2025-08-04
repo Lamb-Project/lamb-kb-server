@@ -1,4 +1,4 @@
-FROM python:3.11-slim-bookworm as builder
+FROM python:3.11-slim-bookworm AS builder
 
 ARG REQUIREMENTS_FILE=requirements-cpu.txt
 
@@ -18,7 +18,7 @@ RUN mkdir -p static
 RUN touch .env
 
 
-FROM gcr.io/distroless/python3-debian12 as final
+FROM gcr.io/distroless/python3-debian12 AS final
 
 WORKDIR /app
 COPY --from=builder --chown=nonroot:nonroot /app /app

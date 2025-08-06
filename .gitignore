@@ -175,3 +175,5 @@ cython_debug/
 backend/data
 backend/static
 
+# Server volume files
+static/

@@ -61,8 +61,10 @@ services:
     environment:
       - LAMB_WEBAPP_PORT=9091
       - LAMB_KB_SERVER_URL=http://backend:9090
+      - CHROMADB_PATH=/data/chromadb 
     volumes:
       - ./webapp:/app
+      - kb-data:/data 
     networks:
       - app-network
     depends_on:

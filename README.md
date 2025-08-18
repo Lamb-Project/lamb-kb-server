@@ -83,7 +83,8 @@ The diagnostics page helps identify and fix common issues like:
 2. Go to the new folder ``cd lamb-kb-server`` and rename the ``.env.example`` to ``.env``
 3. For development run ``docker compose -f docker-compose.dev.yaml up -d`` and for prod run ``docker compose -f docker-compose.prod.yaml up -d``
 4. Go to ``http://localhost:9091`` in the browser in development to test the server
-5. Running unit tests: ``docker compose -f docker-compose.dev.yaml --env-file backend/.env run --rm backend-tests /opt/deps/bin/pytest tests/``
+
+NOTE: development uses only CPU. If you want to use the GPU you need to modify the docker-compose.prod.yaml file accordingly to the specific GPU you have.
 
 ## API Authentication
 

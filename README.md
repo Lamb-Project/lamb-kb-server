@@ -80,7 +80,7 @@ The diagnostics page helps identify and fix common issues like:
 
 ### Option 2: Docker Containers
 1. Clone the repository: ``git clone git@github.com:Lamb-Project/lamb-kb-server.git``
-2. Go to the new folder ``cd lamb-kb-server`` and rename the ``.env.example`` to ``.env``
+2. Go to the new folder ``cd lamb-kb-server`` and rename the ``.env.example`` to ``.env``: ``mv backend/.env.example backend/.env``. Enter your openai apikey here, if you do not have one use other vendors like Ollama and change the necessary variables: ``EMBEDDINGS_VENDOR`` and ``EMBEDDINGS_MODEL``
 3. For development run ``docker compose -f docker-compose.dev.yaml up -d`` and for prod run ``docker compose -f docker-compose.prod.yaml up -d``
 4. Go to ``http://localhost:9091`` in the browser in development to test the server
 

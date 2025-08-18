@@ -7,14 +7,14 @@ A dedicated knowledge base server designed to provide robust vector database fun
 > **Note:** The Model Context Protocol (MCP) functionality is currently a work in progress.
 
 ## Setup and Installation
-
-### Prerequisites
+### Option 1: Local Installation
+#### Prerequisites
 
 - Python 3.11 or higher
 - pip (Python package manager)
 - recommended use of Conda or virtual environment 
 
-### Installation
+#### Installation
 
 1. Clone the repository:
 ```bash
@@ -36,7 +36,7 @@ pip install -r requirements.txt
    - Modify the API key as needed (default: "0p3n-w3bu!")
    - Configure embedding model settings (see Embeddings Configuration section)
 
-### Running the Server
+#### Running the Server
 
 ```bash
 cd backend
@@ -45,7 +45,7 @@ python start.py
 
 The server will run on http://localhost:9090 by default. Edit start.py to change the port. 
 
-### Web Explorer and Diagnostics
+#### Web Explorer and Diagnostics
 
 The Lamb KB Server includes a web-based UI to explore collections and diagnose potential issues with the ChromaDB database:
 
@@ -77,6 +77,13 @@ The diagnostics page helps identify and fix common issues like:
 - Missing UUID mappings
 - Orphaned data directories
 - Inconsistencies between the SQLite registry and ChromaDB 
+
+### Option 2: Docker Containers
+1. Clone the repository: ``git clone git@github.com:Lamb-Project/lamb-kb-server.git``
+2. Go to the new folder ``cd lamb-kb-server`` and rename the ``.env.example`` to ``.env``
+3. For development run ``docker compose -f docker-compose.dev.yaml up -d`` and for prod run ``docker compose -f docker-compose.prod.yaml up -d``
+4. Go to ``http://localhost:9091`` in the browser in development to test the server
+5. Running unit tests: ``docker compose -f docker-compose.dev.yaml --env-file backend/.env run --rm backend-tests /opt/deps/bin/pytest tests/``
 
 ## API Authentication
 

@@ -7,10 +7,9 @@ services:
     volumes:
       - ./static:/data/static
 
-  # Local firecrawl. It can be replaced by entering the correct APIKEY and using their services
-  # Used for scrapping websites --> only used in URL ingestion
   firecrawl:
-    image: ghcr.io/mendableai/firecrawl:latest
+    build:
+      context: ./firecrawl
     ports:
       - "7331:3002"
     networks:
@@ -69,16 +68,6 @@ services:
       - app-network
     depends_on:
       - backend
-
-  # Run unit tests
-  backend-tests:
-    build:
-      context: ./backend
-      target: builder
-    volumes:
-      - ./backend:/app
-    env_file:
-      - backend/.env 
 
 networks:
   app-network:

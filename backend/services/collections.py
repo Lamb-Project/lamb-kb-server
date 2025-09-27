@@ -310,6 +310,9 @@ class CollectionsService:
         Raises:
             HTTPException: If file not found or content cannot be retrieved
         """
+        import mimetypes
+        from pathlib import Path
+        
         # Get file registry entry
         file_registry = db.query(FileRegistry).filter(FileRegistry.id == file_id).first()
         if not file_registry:
@@ -328,25 +331,87 @@ class CollectionsService:
             
         # Get ChromaDB client and collection
         chroma_client = get_chroma_client()
-        chroma_collection = chroma_client.get_collection(name=collection.name)
         
-        source = file_registry.original_filename
+        # Get the embedding function for this collection
+        from database.connection import get_embedding_function
+        embedding_function = get_embedding_function(collection)
         
-        # Get content from ChromaDB
+        chroma_collection = chroma_client.get_collection(
+            name=collection.name,
+            embedding_function=embedding_function
+        )
+        
+        # Debug: Let's see what metadata we have in ChromaDB
+        print(f"DEBUG: Looking for file with ID {file_id}")
+        print(f"DEBUG: File registry - original_filename: {file_registry.original_filename}")
+        print(f"DEBUG: File registry - file_path: {file_registry.file_path}")
+        
+        # First, let's get ALL documents to see their metadata structure
+        all_results = chroma_collection.get(
+            include=["metadatas"],
+            limit=1  # Just get one to see the structure
+        )
+        
+        if all_results["metadatas"]:
+            print(f"DEBUG: Sample metadata from ChromaDB: {all_results['metadatas'][0]}")
+        
+        # The metadata uses "source" field but the value should match file_path from ingestion
+        # Let's try multiple query strategies
+        results = None
+        
+        # Strategy 1: Query by source field with file_path
         results = chroma_collection.get(
-            where={"filename": source}, 
+            where={"source": file_registry.file_path},
             include=["documents", "metadatas"]
         )
-
-        print(file_registry.to_dict())
         
-
-        print(file_registry.original_filename, results["documents"])
-        # If no content in ChromaDB, raise error
+        print(f"DEBUG: Query by source={file_registry.file_path} returned {len(results['documents'])} documents")
+        
+        # Strategy 2: If no results, try by filename field
         if not results["documents"]:
+            results = chroma_collection.get(
+                where={"filename": file_registry.original_filename},
+                include=["documents", "metadatas"]
+            )
+            print(f"DEBUG: Query by filename={file_registry.original_filename} returned {len(results['documents'])} documents")
+        
+        # Strategy 3: If still no results, get all and filter manually
+        if not results["documents"]:
+            print("DEBUG: Trying to get all documents and filter manually")
+            all_results = chroma_collection.get(
+                include=["documents", "metadatas"]
+            )
+            
+            # Filter by matching source or filename
+            filtered_docs = []
+            filtered_metas = []
+            
+            for i, meta in enumerate(all_results["metadatas"]):
+                if meta:
+                    # Check if source matches either file_path or contains original_filename
+                    source_value = meta.get("source", "")
+                    filename_value = meta.get("filename", "")
+                    
+                    print(f"DEBUG: Checking document {i}: source={source_value}, filename={filename_value}")
+                    
+                    if (source_value == file_registry.file_path or 
+                        source_value.endswith(file_registry.original_filename) or
+                        filename_value == file_registry.original_filename):
+                        filtered_docs.append(all_results["documents"][i])
+                        filtered_metas.append(meta)
+            
+            if filtered_docs:
+                results = {
+                    "documents": filtered_docs,
+                    "metadatas": filtered_metas
+                }
+                print(f"DEBUG: Manual filtering found {len(filtered_docs)} documents")
+        
+        # If no content in ChromaDB, raise error
+        if not results or not results["documents"]:
             raise HTTPException(
                 status_code=404,
-                detail=f"No content found for file: {source}"
+                detail=f"No content found for file: {file_registry.original_filename}"
             )
         
         # Reconstruct content from chunks
@@ -366,11 +431,77 @@ class CollectionsService:
         # Join all chunks
         full_content = "\n".join(doc["text"] for doc in chunk_docs)
         
+        # Detect content type based on file extension
+        content_type = "text/plain"  # Default
+        
+        # Check if it's a URL ingestion (original_filename starts with http)
+        if file_registry.original_filename.startswith(('http://', 'https://')):
+            content_type = "text/html"
+        else:
+            # Get file extension from original filename
+            file_path = Path(file_registry.original_filename)
+            file_extension = file_path.suffix.lower()
+            
+            # Map extensions to content types
+            content_type_mapping = {
+                '.md': 'text/markdown',
+                '.markdown': 'text/markdown',
+                '.txt': 'text/plain',
+                '.text': 'text/plain',
+                '.html': 'text/html',
+                '.htm': 'text/html',
+                '.xml': 'text/xml',
+                '.json': 'application/json',
+                '.yaml': 'text/yaml',
+                '.yml': 'text/yaml',
+                '.csv': 'text/csv',
+                '.tsv': 'text/tab-separated-values',
+                '.rst': 'text/x-rst',
+                '.tex': 'text/x-tex',
+                '.py': 'text/x-python',
+                '.js': 'text/javascript',
+                '.css': 'text/css',
+                '.sh': 'text/x-shellscript',
+                '.bat': 'text/x-batch',
+                '.ps1': 'text/x-powershell',
+                '.sql': 'text/x-sql',
+                '.log': 'text/plain',
+                '.ini': 'text/plain',
+                '.cfg': 'text/plain',
+                '.conf': 'text/plain',
+                '.properties': 'text/plain',
+                '.toml': 'text/plain',
+            }
+            
+            # Check our mapping first
+            if file_extension in content_type_mapping:
+                content_type = content_type_mapping[file_extension]
+            else:
+                # Fall back to Python's mimetypes module
+                guessed_type, _ = mimetypes.guess_type(file_registry.original_filename)
+                if guessed_type and guessed_type.startswith('text'):
+                    content_type = guessed_type
+                # For special cases where mimetypes might not recognize
+                elif file_extension in ['.ipynb']:
+                    content_type = 'application/json'
+        
+        # Check if there's a .html version of the file (for markitdown plugin)
+        # The markitdown plugin creates .html files from various formats
+        if file_extension in ['.pdf', '.pptx', '.docx', '.xlsx', '.xls', '.epub', '.zip']:
+            # These files are likely processed by markitdown plugin which creates HTML
+            content_type = 'text/html'
+            
+            # Also check if the content looks like HTML
+            if full_content.strip().startswith(('<html', '<!DOCTYPE', '<HTML', '<!doctype')):
+                content_type = 'text/html'
+        
+        print(f"DEBUG: Detected content type: {content_type} for file: {file_registry.original_filename}")
+        
         return {
             "file_id": file_id,
-            "original_filename": source,
+            "original_filename": file_registry.original_filename,
             "content": full_content,
-            "content_type": "markdown",  # Always set to markdown
+            "content_type": content_type,
             "chunk_count": len(chunk_docs),
             "timestamp": file_registry.updated_at.isoformat() if file_registry.updated_at else None
         }

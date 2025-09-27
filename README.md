@@ -263,8 +263,4 @@ To run the web application:
   
 go to http://localhost:9091 to access the web application 
 Warning, this app runs on port 9091, different from the server port 9090 
-Warning, this app is not production ready and is only for development and debugging purposes 
-
-
-
-
+Warning, this app is not production ready and is only for development and debugging purposes.

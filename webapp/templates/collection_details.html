@@ -491,11 +491,47 @@
                 document.getElementById('previewContentModalLabel').textContent = title;
                 
                 // Render content based on content type
-                if (data.content_type === 'markdown') {
+                // In the previewFileContent function, update the content rendering part:
+
+                // Render content based on content type
+                if (data.content_type === 'text/markdown' || data.content_type === 'text/x-markdown') {
                     // Render markdown content
                     contentElement.innerHTML = md.render(data.content || "No content found");
+                } else if (data.content_type === 'text/html') {
+                    // For HTML, create a sandboxed iframe or sanitize
+                    // For safety, we'll display it as code with syntax highlighting
+                    const escapedContent = (data.content || "No content found")
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#039;');
+                    contentElement.innerHTML = `<pre class="text-wrap"><code class="language-html">${escapedContent}</code></pre>`;
+                } else if (data.content_type === 'application/json') {
+                    // Pretty print JSON
+                    try {
+                        const jsonContent = JSON.parse(data.content);
+                        contentElement.innerHTML = `<pre class="text-wrap">${JSON.stringify(jsonContent, null, 2)}</pre>`;
+                    } catch {
+                        // If JSON parsing fails, display as plain text
+                        const escapedContent = (data.content || "No content found")
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;');
+                        contentElement.innerHTML = `<pre class="text-wrap">${escapedContent}</pre>`;
+                    }
+                } else if (data.content_type && data.content_type.startsWith('text/x-') || data.content_type === 'text/javascript' || data.content_type === 'text/css') {
+                    // For code files, display with syntax highlighting hint
+                    const language = data.content_type.replace('text/x-', '').replace('text/', '');
+                    const escapedContent = (data.content || "No content found")
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#039;');
+                    contentElement.innerHTML = `<pre class="text-wrap"><code class="language-${language}">${escapedContent}</code></pre>`;
                 } else {
-                    // For plain text, use a preformatted element with HTML escaping
+                    // Default: plain text
                     const textContent = data.content || "No content found";
                     const escapedContent = textContent
                         .replace(/&/g, '&amp;')
@@ -505,10 +541,10 @@
                         .replace(/'/g, '&#039;');
                     contentElement.innerHTML = `<pre class="text-wrap">${escapedContent}</pre>`;
                 }
-                
+
                 // Add additional info to debug
                 document.getElementById('debugInfo').textContent = 
-                    `File ID: ${fileId}, Chunks: ${data.chunk_count}, Type: ${data.content_type}, Timestamp: ${data.timestamp}`;
+                    `File ID: ${fileId}, Chunks: ${data.chunk_count}, Type: ${data.content_type}, Status: ${data.status || 'completed'}, Timestamp: ${data.timestamp}`;
             })
             .catch(error => {
                 // Hide loading, show error

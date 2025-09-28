@@ -2,9 +2,10 @@ services:
   backend-permissions-fix:
     image: alpine
     # The command to run. UID 65532 is the standard 'nonroot' user in distroless images
-    command: sh -c 'chown -R 65532:65532 /data/static'
+    command: sh -c 'chown -R 65532:65532 /data/static && chown -R 65532:65532 /app/data && chmod -R 755 /app/data'
     volumes:
       - ./static:/data/static
+      - kb-data:/app/data 
     depends_on:
       - backend
       

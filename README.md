@@ -15,6 +15,7 @@ A dedicated knowledge base server designed to provide robust vector database fun
 - recommended use of Conda or virtual environment 
 
 ### Installation
+#### Option 1: Local Installation
 
 1. Clone the repository:
 ```bash
@@ -35,6 +36,12 @@ pip install -r requirements.txt
    - Copy `.env.example` to `.env`
    - Modify the API key as needed (default: "0p3n-w3bu!")
    - Configure embedding model settings (see Embeddings Configuration section)
+
+#### Option 2: Docker Containers
+1. Clone the repository ``git clone git@github.com:Lamb-Project/lamb-kb-server.git`` and go to the new folder ``cd lamb-kb-server``
+2. Rename the environment file ``cp ./backend/.env.example ./backend/.env``
+3. Change the environment file according to your configuration. For example, if you're using openai you will probably have ``EMBEDDINGS_MODEL=text-embedding-3-small``, ``EMBEDDINGS_VENDOR=openai`` and ``EMBEDDINGS_APIKEY={your apikey}``
+4. Run ``docker compose up -d`` and go to ``localhost:9091``
 
 ### Running the Server
 

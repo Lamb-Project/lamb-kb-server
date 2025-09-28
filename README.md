@@ -39,7 +39,7 @@ pip install -r requirements.txt
 
 #### Option 2: Docker Containers
 1. Clone the repository ``git clone git@github.com:Lamb-Project/lamb-kb-server.git`` and go to the new folder ``cd lamb-kb-server``
-2. Rename the environment file ``mv ./backend/.env.example ./backend/.env``
+2. Rename the environment file ``cp ./backend/.env.example ./backend/.env``
 3. Change the environment file according to your configuration. For example, if you're using openai you will probably have ``EMBEDDINGS_MODEL=text-embedding-3-small``, ``EMBEDDINGS_VENDOR=openai`` and ``EMBEDDINGS_APIKEY={your apikey}``
 4. Run ``docker compose up -d``
 

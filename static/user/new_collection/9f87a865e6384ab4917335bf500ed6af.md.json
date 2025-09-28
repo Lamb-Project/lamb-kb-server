@@ -1,0 +1,182 @@
+[
+    {
+        "text": "# Lamb Knowledge Base Server (lamb-kb-server)\n\nA dedicated knowledge base server designed to provide robust vector database functionality for the LAMB project and to serve as a Model Context Protocol (MCP) server. It uses ChromaDB for vector database storage and FastAPI to create an API that allows the LAMB project to access knowledge databases.\n\n**Authors:** [Marc Alier (@granludo)](https://github.com/granludo) and [Juanan Pereira (@juananpe)](https://github.com/juananpe)\n\n> **Note:** The Model Context Protocol (MCP) functionality is currently a work in progress.\n\n## Setup and Installation\n### Option 1: Local Installation\n#### Prerequisites\n\n- Python 3.11 or higher\n- pip (Python package manager)\n- recommended use of Conda or virtual environment \n\n#### Installation\n\n1. Clone the repository:\n```bash\ngit clone https://github.com/Lamb-Project/lamb-kb-server.git\ncd lamb-kb-server\n```",
+        "metadata": {
+            "source": "/app/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "filename": "9f87a865e6384ab4917335bf500ed6af.md",
+            "extension": "md",
+            "file_size": 9047,
+            "file_url": "http://localhost:9090/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "chunking_strategy": "langchain_recursivecharactertextsplitter",
+            "chunk_size": 1000,
+            "chunk_overlap": 200,
+            "chunk_index": 0,
+            "chunk_count": 12
+        }
+    },
+    {
+        "text": "#### Installation\n\n1. Clone the repository:\n```bash\ngit clone https://github.com/Lamb-Project/lamb-kb-server.git\ncd lamb-kb-server\n```\n\n2. Set-up and install the required dependencies:\n```bash\ncd backend\nmkdir static\npip install -r requirements.txt\n```\n\n   > **Project Structure:** The repository consists of a `backend` directory that contains the server code. All commands should be run from the `backend` directory.\n\n3. Environment variables:\n   - Copy `.env.example` to `.env`\n   - Modify the API key as needed (default: \"0p3n-w3bu!\")\n   - Configure embedding model settings (see Embeddings Configuration section)\n\n#### Running the Server\n\n```bash\ncd backend\npython start.py\n```\n\nThe server will run on http://localhost:9090 by default. Edit start.py to change the port. \n\n#### Web Explorer and Diagnostics\n\nThe Lamb KB Server includes a web-based UI to explore collections and diagnose potential issues with the ChromaDB database:\n\n```bash\ncd backend\npython lamb_kb_webapp.py\n```",
+        "metadata": {
+            "source": "/app/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "filename": "9f87a865e6384ab4917335bf500ed6af.md",
+            "extension": "md",
+            "file_size": 9047,
+            "file_url": "http://localhost:9090/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "chunking_strategy": "langchain_recursivecharactertextsplitter",
+            "chunk_size": 1000,
+            "chunk_overlap": 200,
+            "chunk_index": 1,
+            "chunk_count": 12
+        }
+    },
+    {
+        "text": "The Lamb KB Server includes a web-based UI to explore collections and diagnose potential issues with the ChromaDB database:\n\n```bash\ncd backend\npython lamb_kb_webapp.py\n```\n\nThis starts a web server on http://localhost:5000 by default that provides:\n\n1. **Collection Explorer**: Browse, view, and query your knowledge base collections\n2. **Advanced Diagnostics**: Troubleshoot issues between the SQLite registry and ChromaDB storage\n   - Collection mappings verification\n   - UUID consistency checks\n   - Metadata analysis\n   - Segments information\n   - Detection of orphaned data\n\nThe diagnostics tool is especially useful when:\n- Collections don't appear correctly in the API\n- You encounter \"collection not found\" errors\n- Documents aren't being properly stored or retrieved\n- You need to verify database integrity\n\n![Diagnostics Screenshot]",
+        "metadata": {
+            "source": "/app/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "filename": "9f87a865e6384ab4917335bf500ed6af.md",
+            "extension": "md",
+            "file_size": 9047,
+            "file_url": "http://localhost:9090/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "chunking_strategy": "langchain_recursivecharactertextsplitter",
+            "chunk_size": 1000,
+            "chunk_overlap": 200,
+            "chunk_index": 2,
+            "chunk_count": 12
+        }
+    },
+    {
+        "text": "![Diagnostics Screenshot]\n\nThe diagnostics page helps identify and fix common issues like:\n- Case sensitivity mismatches in collection names\n- Missing UUID mappings\n- Orphaned data directories\n- Inconsistencies between the SQLite registry and ChromaDB \n\n### Option 2: Docker Containers\n1. Clone the repository: ``git clone git@github.com:Lamb-Project/lamb-kb-server.git``\n2. Go to the new folder ``cd lamb-kb-server`` and rename the ``.env.example`` to ``.env``: ``mv backend/.env.example backend/.env``. Enter your openai apikey here, if you do not have one use other vendors like Ollama and change the necessary variables: ``EMBEDDINGS_VENDOR`` and ``EMBEDDINGS_MODEL``\n3. For development run ``docker compose -f docker-compose.dev.yaml up -d`` and for prod run ``docker compose -f docker-compose.prod.yaml up -d``\n4. Go to ``http://localhost:9091`` in the browser in development to test the server",
+        "metadata": {
+            "source": "/app/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "filename": "9f87a865e6384ab4917335bf500ed6af.md",
+            "extension": "md",
+            "file_size": 9047,
+            "file_url": "http://localhost:9090/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "chunking_strategy": "langchain_recursivecharactertextsplitter",
+            "chunk_size": 1000,
+            "chunk_overlap": 200,
+            "chunk_index": 3,
+            "chunk_count": 12
+        }
+    },
+    {
+        "text": "NOTE: development uses only CPU. If you want to use the GPU you need to modify the docker-compose.prod.yaml file accordingly to the specific GPU you have.\n\n## API Authentication\n\nAll API calls require a Bearer token for authentication. The token must match the `LAMB_API_KEY` environment variable.\n\nExample request:\n```bash\ncurl -H 'Authorization: Bearer 0p3n-w3bu!' http://localhost:9090/\n```\n\n## Features\n\n### Core Functionality\n\n- **Collections Management**: Create, view, update and manage document collections\n- **Document Ingestion**: Process and store documents with vectorized content\n- **File Registry**: Maintain a registry of all uploaded and processed files with their metadata and processing status\n- **Similarity Search**: Query collections to find semantically similar content\n- **Static File Serving**: Serve original documents via URL references\n\n### Plugin System\n\nThe server implements a flexible plugin architecture for both ingestion and querying:\n\n#### Ingestion Plugins",
+        "metadata": {
+            "source": "/app/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "filename": "9f87a865e6384ab4917335bf500ed6af.md",
+            "extension": "md",
+            "file_size": 9047,
+            "file_url": "http://localhost:9090/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "chunking_strategy": "langchain_recursivecharactertextsplitter",
+            "chunk_size": 1000,
+            "chunk_overlap": 200,
+            "chunk_index": 4,
+            "chunk_count": 12
+        }
+    },
+    {
+        "text": "### Plugin System\n\nThe server implements a flexible plugin architecture for both ingestion and querying:\n\n#### Ingestion Plugins\n\nPlugins for processing different document types with configurable chunking strategies:\n\n- **simple_ingest**: Processes text files with options for character, word, or line-based chunking\n- Support for custom chunking parameters:\n  - `chunk_size`: Size of each chunk\n  - `chunk_unit`: Unit for chunking (`char`, `word`, or `line`)\n  - `chunk_overlap`: Overlap between chunks\n\n#### Query Plugins\n\nPlugins for different query strategies:\n\n- **simple_query**: Performs similarity searches with configurable parameters:\n  - `top_k`: Number of results to return\n  - `threshold`: Minimum similarity threshold\n\n### Embeddings Configuration\n\nThe system supports multiple embedding providers:",
+        "metadata": {
+            "source": "/app/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "filename": "9f87a865e6384ab4917335bf500ed6af.md",
+            "extension": "md",
+            "file_size": 9047,
+            "file_url": "http://localhost:9090/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "chunking_strategy": "langchain_recursivecharactertextsplitter",
+            "chunk_size": 1000,
+            "chunk_overlap": 200,
+            "chunk_index": 5,
+            "chunk_count": 12
+        }
+    },
+    {
+        "text": "### Embeddings Configuration\n\nThe system supports multiple embedding providers:\n\n1. **Local Embeddings** (default)\n   - Uses sentence-transformers models locally\n   - Example configuration in `.env`:\n     ```\n     EMBEDDINGS_MODEL=sentence-transformers/all-MiniLM-L6-v2\n     EMBEDDINGS_VENDOR=local\n     EMBEDDINGS_APIKEY=\n     ```\n\n2. **OpenAI Embeddings**\n   - Uses OpenAI's embedding API\n   - Requires an API key\n   - Example configuration in `.env`:\n     ```\n     EMBEDDINGS_MODEL=text-embedding-3-small\n     EMBEDDINGS_VENDOR=openai\n     EMBEDDINGS_APIKEY=your-openai-key-here\n     ```\n\nWhen creating collections, you can specify the embedding configuration or use \"default\" to inherit from environment variables:\n\n```json\n\"embeddings_model\": {\n  \"model\": \"default\",\n  \"vendor\": \"default\",\n  \"apikey\": \"default\"\n}\n```\n\n## API Examples",
+        "metadata": {
+            "source": "/app/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "filename": "9f87a865e6384ab4917335bf500ed6af.md",
+            "extension": "md",
+            "file_size": 9047,
+            "file_url": "http://localhost:9090/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "chunking_strategy": "langchain_recursivecharactertextsplitter",
+            "chunk_size": 1000,
+            "chunk_overlap": 200,
+            "chunk_index": 6,
+            "chunk_count": 12
+        }
+    },
+    {
+        "text": "```json\n\"embeddings_model\": {\n  \"model\": \"default\",\n  \"vendor\": \"default\",\n  \"apikey\": \"default\"\n}\n```\n\n## API Examples\n\nFull api documentation is available at http://localhost:9090/docs (swagger) and backend/lamb-kb-server-api.md (markdown, wich can be generated with the backend/export_docs.py script ).\n\n### Creating a Collection\n\n```bash\ncurl -X POST 'http://localhost:9090/collections' \\\n  -H 'Authorization: Bearer 0p3n-w3bu!' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"name\": \"my-knowledge-base\",\n    \"description\": \"My first knowledge base\",\n    \"owner\": \"user1\",\n    \"visibility\": \"private\",\n    \"embeddings_model\": {\n      \"model\": \"default\",\n      \"vendor\": \"default\",\n      \"apikey\": \"default\"\n    }\n  }'\n```\n\n### Ingesting a File",
+        "metadata": {
+            "source": "/app/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "filename": "9f87a865e6384ab4917335bf500ed6af.md",
+            "extension": "md",
+            "file_size": 9047,
+            "file_url": "http://localhost:9090/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "chunking_strategy": "langchain_recursivecharactertextsplitter",
+            "chunk_size": 1000,
+            "chunk_overlap": 200,
+            "chunk_index": 7,
+            "chunk_count": 12
+        }
+    },
+    {
+        "text": "### Ingesting a File\n\n```bash\ncurl -X POST 'http://localhost:9090/collections/1/ingest_file' \\\n  -H 'Authorization: Bearer 0p3n-w3bu!' \\\n  -F 'file=@/path/to/document.txt' \\\n  -F 'plugin_name=simple_ingest' \\\n  -F 'plugin_params={\"chunk_size\":1000,\"chunk_unit\":\"char\",\"chunk_overlap\":200}'\n```\n\n### Querying a Collection\n\n```bash\ncurl -X POST 'http://localhost:9090/collections/1/query' \\\n  -H 'Authorization: Bearer 0p3n-w3bu!' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"query_text\": \"What is machine learning?\",\n    \"top_k\": 5,\n    \"threshold\": 0.5,\n    \"plugin_params\": {}\n  }'\n```\n\n## Testing\n\nThe repository includes test scripts to verify functionality:\n\n- **test.py**: A comprehensive test script that tests every API endpoint including creating collections, ingesting documents with different chunking strategies, performing queries, and file registry management\n- **params.json**: Configuration for the test script with example data and queries",
+        "metadata": {
+            "source": "/app/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "filename": "9f87a865e6384ab4917335bf500ed6af.md",
+            "extension": "md",
+            "file_size": 9047,
+            "file_url": "http://localhost:9090/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "chunking_strategy": "langchain_recursivecharactertextsplitter",
+            "chunk_size": 1000,
+            "chunk_overlap": 200,
+            "chunk_index": 8,
+            "chunk_count": 12
+        }
+    },
+    {
+        "text": "The test script provides a complete workflow example using the `LambKBClient` class, which can be used as a reference for integrating with the API in your own projects.\n\nTo run the tests:\n\n```bash\ncd backend\npython test.py\n```\n\n## File Registry\n\nThe system maintains a registry of all uploaded and processed files with their metadata and processing status:\n\n- **List Files**: View all files in a collection or filter by status\n- **File Status Management**: Track and update file status (processing, completed, failed, deleted)\n- **File Metadata**: Access metadata such as original filename, size, processing statistics, and chunking strategy\n\nExample API calls for file registry management:\n\n```bash\n# List all files in a collection\ncurl -X GET 'http://localhost:9090/collections/1/files' \\\n  -H 'Authorization: Bearer 0p3n-w3bu!'",
+        "metadata": {
+            "source": "/app/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "filename": "9f87a865e6384ab4917335bf500ed6af.md",
+            "extension": "md",
+            "file_size": 9047,
+            "file_url": "http://localhost:9090/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "chunking_strategy": "langchain_recursivecharactertextsplitter",
+            "chunk_size": 1000,
+            "chunk_overlap": 200,
+            "chunk_index": 9,
+            "chunk_count": 12
+        }
+    },
+    {
+        "text": "Example API calls for file registry management:\n\n```bash\n# List all files in a collection\ncurl -X GET 'http://localhost:9090/collections/1/files' \\\n  -H 'Authorization: Bearer 0p3n-w3bu!'\n\n# Update file status\ncurl -X PATCH 'http://localhost:9090/files/1' \\\n  -H 'Authorization: Bearer 0p3n-w3bu!' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"status\": \"completed\"}'\n```\n\n# KNOWN ISSUES\n[Bug](https://github.com/chroma-core/chroma/issues/2731): Chroma 0.5.5 not working on intel CPU macbook #2731\nchroma-core/chroma#2731\n\n# Web Application (just for development and debugging)\n\nThe repository includes a web application that can be used to explore collections and diagnose potential issues with the ChromaDB database and consistency with the sqlite lamb-kb-server.db database.\n\nTo run the web application:\n\n```bash\n  cd backend\n  python lamb_kb_webapp.py\n  ```",
+        "metadata": {
+            "source": "/app/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "filename": "9f87a865e6384ab4917335bf500ed6af.md",
+            "extension": "md",
+            "file_size": 9047,
+            "file_url": "http://localhost:9090/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "chunking_strategy": "langchain_recursivecharactertextsplitter",
+            "chunk_size": 1000,
+            "chunk_overlap": 200,
+            "chunk_index": 10,
+            "chunk_count": 12
+        }
+    },
+    {
+        "text": "To run the web application:\n\n```bash\n  cd backend\n  python lamb_kb_webapp.py\n  ```\n\n  \ngo to http://localhost:9091 to access the web application \nWarning, this app runs on port 9091, different from the server port 9090 \nWarning, this app is not production ready and is only for development and debugging purposes.",
+        "metadata": {
+            "source": "/app/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "filename": "9f87a865e6384ab4917335bf500ed6af.md",
+            "extension": "md",
+            "file_size": 9047,
+            "file_url": "http://localhost:9090/static/user/new_collection/9f87a865e6384ab4917335bf500ed6af.md",
+            "chunking_strategy": "langchain_recursivecharactertextsplitter",
+            "chunk_size": 1000,
+            "chunk_overlap": 200,
+            "chunk_index": 11,
+            "chunk_count": 12
+        }
+    }
+]

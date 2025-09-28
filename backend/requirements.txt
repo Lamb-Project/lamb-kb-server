@@ -14,8 +14,6 @@ langchain-text-splitters==0.3.0
 markdown2
 # Additional dependencies used in plugins
 firecrawl>=1.7.0
-pathlib>=1.0.1
-uuid>=1.30
 # Vendor dependencies
 ollama
 openai

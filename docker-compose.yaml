@@ -1,0 +1,54 @@
+services:
+  backend-permissions-fix:
+    image: alpine
+    # The command to run. UID 65532 is the standard 'nonroot' user in distroless images
+    command: sh -c 'chown -R 65532:65532 /data/static'
+    volumes:
+      - ./static:/data/static
+    depends_on:
+      - backend
+      
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "9090:9090"
+    env_file:
+      - backend/.env
+    environment:
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      - FIRECRAWL_API_URL=http://firecrawl:3002
+    volumes:
+      - ./backend:/app/backend
+      - ./static:/app/static
+      - kb-data:/app/data
+    networks:
+      - app-network
+
+  webapp:
+    build:
+      context: ./webapp
+    ports:
+      - "9091:9091"
+    environment:
+      - LAMB_WEBAPP_PORT=9091
+      - LAMB_KB_SERVER_URL=http://backend:9090
+      - CHROMADB_PATH=/data/chromadb 
+    volumes:
+      - ./webapp:/app
+      - kb-data:/data 
+    networks:
+      - app-network
+    depends_on:
+      - backend
+  
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  kb-data:
+    name: lamb-kb-data
+  static-files:
+    name: lamb-static-files

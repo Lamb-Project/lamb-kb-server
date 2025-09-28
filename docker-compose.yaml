@@ -5,6 +5,8 @@ services:
     command: sh -c 'chown -R 65532:65532 /data/static'
     volumes:
       - ./static:/data/static
+    depends_on:
+      - backend
       
   backend:
     build:

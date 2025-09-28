@@ -34,14 +34,9 @@ API_KEY = os.getenv("LAMB_API_KEY", "0p3n-w3bu!")
 BASE_URL = os.getenv("LAMB_KB_SERVER_URL", "http://localhost:9090")
 
 # Try to get ChromaDB path from environment or use a few common paths
-CHROMADB_PATH = os.getenv("CHROMADB_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/chromadb"))
+CHROMADB_PATH = os.getenv("CHROMADB_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "backend", "data", "chromadb"))
 CHROMADB_PATHS = [
-    CHROMADB_PATH,
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/chromadb"),
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "chromadb"), 
-    os.path.join(os.path.abspath("."), "data/chromadb"),
-    os.path.join(os.path.abspath(".."), "data/chromadb"),
-    os.path.join(os.path.abspath("."), "backend/data/chromadb")
+    CHROMADB_PATH
 ]
 
 # Log all paths we're trying
@@ -1814,4 +1809,4 @@ if __name__ == '__main__':
                 logger.warning(f"  Path does not exist: {path}")
     
     # Run the Flask application
-    app.run(host='0.0.0.0', port=8080, debug=True) 
+    app.run(host='0.0.0.0', port=8081, debug=True) 

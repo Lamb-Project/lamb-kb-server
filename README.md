@@ -50,7 +50,7 @@ The server will run on http://localhost:9090 by default. Edit start.py to change
 The Lamb KB Server includes a web-based UI to explore collections and diagnose potential issues with the ChromaDB database:
 
 ```bash
-cd backend
+cd webapp
 python lamb_kb_webapp.py
 ```
 

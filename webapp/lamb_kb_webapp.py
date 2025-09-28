@@ -1809,4 +1809,4 @@ if __name__ == '__main__':
                 logger.warning(f"  Path does not exist: {path}")
     
     # Run the Flask application
-    app.run(host='0.0.0.0', port=8081, debug=True) 
+    app.run(host='0.0.0.0', port=8080, debug=True) 

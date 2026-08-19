@@ -1,117 +1,139 @@
+"""SQLAlchemy ORM models for the KB Server metadata database.
+
+Two tables track the service's state:
+
+* ``collections`` — one row per knowledge base. The ``store_setup`` columns
+  (chunking strategy, embedding vendor/model, vector DB backend) are locked
+  at creation time (ADR-3).
+* ``ingestion_jobs`` — persistent queue of async add-content operations.
+  Embedding credentials are NEVER stored here — they live in memory only
+  (see ``tasks/worker.py``), honoring ADR-4.
+
+No vector payloads are stored in this DB; those live in the vector backend
+under ``DATA_DIR/storage/{org_id}/{collection_id}/``.
 """
-Database models for the Lamb Knowledge Base Server.
 
-This module defines SQLAlchemy models for the application's database schema.
-"""
+from datetime import UTC, datetime
 
-import datetime
-import json
-from enum import Enum
-from typing import Optional, Dict, Any
-
-from sqlalchemy import Column, Integer, String, Text, DateTime, JSON, ForeignKey, Enum as SQLAlchemyEnum, UniqueConstraint
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
-
-
-class Visibility(str, Enum):
-    """Enum for collection visibility states."""
-    PRIVATE = "private"
-    PUBLIC = "public"
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.orm import DeclarativeBase
 
 
-class FileStatus(str, Enum):
-    """Enum for file status states."""
-    COMPLETED = "completed"
-    PROCESSING = "processing"
-    FAILED = "failed"
-    DELETED = "deleted"
+class Base(DeclarativeBase):
+    """Base class for all ORM models."""
+
+
+def _utcnow() -> datetime:
+    """Return current UTC datetime (timezone-aware)."""
+    return datetime.now(UTC)
 
 
 class Collection(Base):
-    """Model representing a knowledge base collection.
-    
-    Each collection has an associated ChromaDB collection.
+    """A knowledge base — a configured collection of vectors.
+
+    The store setup columns (chunking + embedding + vector DB backend) are
+    immutable after creation. Re-chunking or re-embedding would make the
+    vectors inconsistent (ADR-3), so we simply refuse to change them.
     """
+
     __tablename__ = "collections"
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(255), nullable=False, index=True)
-    description = Column(Text, nullable=True)
-    creation_date = Column(DateTime, default=datetime.datetime.utcnow)
-    owner = Column(String(255), nullable=False, index=True)
-    visibility = Column(SQLAlchemyEnum(Visibility), default=Visibility.PRIVATE, nullable=False)
-    embeddings_model = Column(JSON, nullable=False, 
-                              default=lambda: json.dumps({
-                                  "model": "sentence-transformers/all-MiniLM-L6-v2",
-                                  "endpoint": None,
-                                  "apikey": None
-                              }))
-    chromadb_uuid = Column(String(36), nullable=True, unique=True, index=True)
-    
     __table_args__ = (
-        UniqueConstraint('name', 'owner', name='uix_collection_name_owner'),
+        UniqueConstraint("organization_id", "name", name="uq_collection_org_name"),
     )
-    
-    def __repr__(self):
-        return f"<Collection id={self.id}, name={self.name}, owner={self.owner}>"
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert the model to a dictionary."""
-        return {
-            "id": self.id,
-            "name": self.name,
-            "description": self.description,
-            "creation_date": self.creation_date.isoformat() if self.creation_date else None,
-            "owner": self.owner,
-            "visibility": self.visibility.value,
-            "embeddings_model": json.loads(self.embeddings_model) if isinstance(self.embeddings_model, str) else self.embeddings_model,
-            "chromadb_uuid": self.chromadb_uuid
-        }
+
+    id = Column(String, primary_key=True)
+    organization_id = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+
+    # --- Locked store setup (immutable, ADR-3) ---
+    chunking_strategy = Column(String, nullable=False)
+    chunking_params = Column(Text, nullable=True)  # JSON
+    embedding_vendor = Column(String, nullable=False)
+    embedding_model = Column(String, nullable=False)
+    embedding_endpoint = Column(String, nullable=True)
+    vector_db_backend = Column(String, nullable=False)
+
+    # Identifier the backend uses internally (e.g. ChromaDB collection name
+    # or UUID). Stored separately from ``id`` so backend renames stay opaque
+    # to API clients.
+    backend_collection_id = Column(String, nullable=True)
+
+    # Relative path (under STORAGE_DIR) for this collection's persistent data.
+    storage_path = Column(String, nullable=False)
+
+    # --- Status tracking ---
+    status = Column(String, nullable=False, default="ready")
+    # ready / error
+    error_message = Column(Text, nullable=True)
+
+    # --- Aggregate counters ---
+    document_count = Column(Integer, nullable=False, default=0)
+    chunk_count = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime, nullable=False, default=_utcnow)
+    updated_at = Column(
+        DateTime, nullable=False, default=_utcnow, onupdate=_utcnow
+    )
 
 
-class FileRegistry(Base):
-    """Model representing files ingested into collections.
-    
-    This tracks each file added to a collection, along with the ingestion parameters
-    and status.
+class IngestionJob(Base):
+    """Persistent record of an async add-content task for the worker queue.
+
+    Jobs are written to SQLite so they survive service restarts. Stale
+    ``processing`` jobs are reset to ``pending`` (or marked failed if they
+    exceeded retry attempts) when the service boots.
+
+    Embedding credentials are held in memory (``tasks/worker._job_api_keys``)
+    and never persisted here — losing them on restart is intentional (ADR-4).
     """
-    __tablename__ = "file_registry"
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    collection_id = Column(Integer, ForeignKey("collections.id", ondelete="CASCADE"), nullable=False, index=True)
-    original_filename = Column(String(255), nullable=False)
-    file_path = Column(String(255), nullable=False)
-    file_url = Column(String(255), nullable=False)
-    file_size = Column(Integer, nullable=False)
-    content_type = Column(String(100), nullable=True)
-    plugin_name = Column(String(100), nullable=False)
-    plugin_params = Column(JSON, nullable=False)
-    status = Column(SQLAlchemyEnum(FileStatus), default=FileStatus.COMPLETED, nullable=False)
-    document_count = Column(Integer, default=0, nullable=False)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow, nullable=False)
-    owner = Column(String(255), nullable=False, index=True)
-    
-    def __repr__(self):
-        return f"<FileRegistry id={self.id}, collection_id={self.collection_id}, filename={self.original_filename}>"
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert the model to a dictionary."""
-        return {
-            "id": self.id,
-            "collection_id": self.collection_id,
-            "original_filename": self.original_filename,
-            "file_path": self.file_path,
-            "file_url": self.file_url,
-            "file_size": self.file_size,
-            "content_type": self.content_type,
-            "plugin_name": self.plugin_name,
-            "plugin_params": json.loads(self.plugin_params) if isinstance(self.plugin_params, str) else self.plugin_params,
-            "status": self.status.value,
-            "document_count": self.document_count,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "owner": self.owner
-        }
+
+    __tablename__ = "ingestion_jobs"
+
+    id = Column(String, primary_key=True)
+    collection_id = Column(String, nullable=False)
+    organization_id = Column(String, nullable=False)
+
+    # --- Payload reference ---
+    # Full document payload (list[dict]) serialized to JSON. Kept here so the
+    # worker can re-read it after a restart. Does NOT include credentials.
+    documents_json = Column(Text, nullable=False)
+
+    # --- Progress counters ---
+    documents_total = Column(Integer, nullable=False, default=0)
+    documents_processed = Column(Integer, nullable=False, default=0)
+    chunks_created = Column(Integer, nullable=False, default=0)
+
+    # --- Status ---
+    status = Column(String, nullable=False, default="pending")
+    # pending / processing / completed / failed
+    error_message = Column(Text, nullable=True)
+    attempts = Column(Integer, nullable=False, default=0)
+
+    # --- Timestamps ---
+    created_at = Column(DateTime, nullable=False, default=_utcnow)
+    updated_at = Column(
+        DateTime, nullable=False, default=_utcnow, onupdate=_utcnow
+    )
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+
+
+# --- Indexes for common query patterns ---
+Index("idx_collections_org", Collection.organization_id)
+Index("idx_collections_status", Collection.status)
+Index("idx_ingestion_jobs_status", IngestionJob.status)
+Index(
+    "idx_ingestion_jobs_status_created",
+    IngestionJob.status,
+    IngestionJob.created_at,
+)
+Index("idx_ingestion_jobs_collection", IngestionJob.collection_id)

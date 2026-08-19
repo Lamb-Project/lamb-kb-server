@@ -1,269 +1,184 @@
-# Lamb Knowledge Base Server (lamb-kb-server)
+# LAMB KB Server
 
-A dedicated knowledge base server designed to provide robust vector database functionality for the LAMB project and to serve as a Model Context Protocol (MCP) server. It uses ChromaDB for vector database storage and FastAPI to create an API that allows the LAMB project to access knowledge databases.
+The **LAMB Knowledge Base Server** is a microservice that chunks, embeds, and stores vectors for the LAMB learning-assistant platform. It runs on port **9092** alongside the existing `lamb-kb-server-stable/` (port 9090) so both can coexist without migration pressure.
 
-**Authors:** [Marc Alier (@granludo)](https://github.com/granludo) and [Juanan Pereira (@juananpe)](https://github.com/juananpe)
+**Terminology.** Libraries **IMPORT** content. Knowledge Bases **INGEST** content. This service is the ingestion side: it receives already-imported text + permalinks from LAMB, chunks it, embeds the chunks, and serves similarity queries back.
 
-> **Note:** The Model Context Protocol (MCP) functionality is currently a work in progress.
+## What it does
 
-## Setup and Installation
+- Creates collections (knowledge bases) with locked store setup: chunking strategy + embedding vendor/model + vector DB backend.
+- Accepts `add-content` requests from LAMB containing document text, permalink metadata, and embedding credentials. Processes them asynchronously via a persistent SQLite-backed job queue.
+- Attaches permalink metadata to every chunk so query results can cite back to the exact source page.
+- Exposes similarity search with permalink-enriched results.
+- Isolates storage per organization at the filesystem level (`data/storage/{org_id}/{collection_id}/`).
 
-### Prerequisites
+## What it does NOT do
 
-- Python 3.11 or higher
-- pip (Python package manager)
-- recommended use of Conda or virtual environment 
+- **No user-level authentication or ACL.** LAMB owns access control; this service trusts the bearer token and processes whatever LAMB sends (ADR-6).
+- **No calls to the Library Manager.** LAMB reads content from the Library Manager and delivers it to the KB server in a single request — the KB server never talks to the Library Manager directly (ADR-1).
+- **No mutation of store setup after creation.** Chunking strategy, embedding model, and vector DB backend are immutable — changing them after vectors exist would make the collection inconsistent (ADR-3). Users who want different settings create a new KB.
+- **No cross-collection query merging.** Multi-KB query merging happens in LAMB's RAG pipeline, not here.
+- **No query rewriting.** The `context_aware_rag` processor in LAMB rewrites queries before sending them; the KB server embeds the query as-is (ADR-11).
 
-### Installation
-#### Option 1: Local Installation
+## Architecture
 
-1. Clone the repository:
-```bash
-git clone https://github.com/Lamb-Project/lamb-kb-server.git
-cd lamb-kb-server
+```
+┌──────────────┐   bearer token   ┌────────────────┐
+│ LAMB backend │────────────────▶ │ LAMB KB Server │
+│   (9099)     │   content + URL  │     (9092)     │
+└──────────────┘                  └────────┬───────┘
+                                           │
+                                           ▼
+                        ┌──────────────────────────────┐
+                        │   Vector DB (Chroma|Qdrant)  │
+                        │   data/storage/{org}/{kb}/   │
+                        └──────────────────────────────┘
 ```
 
-2. Set-up and install the required dependencies:
-```bash
-cd backend
-mkdir static
-pip install -r requirements.txt
-```
+Only LAMB calls the KB server. Requests carry `Authorization: Bearer $LAMB_API_TOKEN`. The KB server refuses to start if the token is empty.
 
-   > **Project Structure:** The repository consists of a `backend` directory that contains the server code. All commands should be run from the `backend` directory.
+### Async processing
 
-3. Environment variables:
-   - Copy `.env.example` to `.env`
-   - Modify the API key as needed (default: "0p3n-w3bu!")
-   - Configure embedding model settings (see Embeddings Configuration section)
+1. LAMB calls `POST /collections/{id}/add-content` with a list of documents and embedding credentials.
+2. The server writes an ingestion job to SQLite (credentials are held in memory only) and returns a job ID.
+3. A background worker pulls pending jobs, chunks each document using the collection's strategy, embeds the chunks with the provided credentials, and stores them in the collection's vector DB.
+4. Credentials are discarded after the job completes.
+5. LAMB polls `GET /jobs/{job_id}` for status.
 
-#### Option 2: Docker Containers
-1. Clone the repository ``git clone git@github.com:Lamb-Project/lamb-kb-server.git`` and go to the new folder ``cd lamb-kb-server``
-2. Rename the environment file ``cp ./backend/.env.example ./backend/.env``
-3. Change the environment file according to your configuration. For example, if you're using openai you will probably have ``EMBEDDINGS_MODEL=text-embedding-3-small``, ``EMBEDDINGS_VENDOR=openai`` and ``EMBEDDINGS_APIKEY={your apikey}``
-4. Run ``docker compose up -d`` and go to ``localhost:9091``
+On a crash, `processing` jobs are reset to `pending` at startup — unless they have exceeded the retry threshold, in which case they are marked `failed`.
 
-### Running the Server
+### Plugin architecture
 
-```bash
-cd backend
-python start.py
-```
+Three plugin families, each gated by simple `{CATEGORY}_{NAME}=ENABLE|DISABLE` env vars.
 
-The server will run on http://localhost:9090 by default. Edit start.py to change the port. 
+| Category | Plugins | Notes |
+|----------|---------|-------|
+| Vector DB | `chromadb` (default), `qdrant` (optional) | `qdrant` requires the `qdrant` extra |
+| Chunking  | `simple`, `hierarchical`, `by_page`, `by_section` | All bundled by default |
+| Embedding | `openai`, `ollama`, `local` (optional) | `local` requires the `local` extra (sentence-transformers) |
 
-### Web Explorer and Diagnostics
+Optional plugins are skipped gracefully if their dependencies are missing — startup does not fail.
 
-The Lamb KB Server includes a web-based UI to explore collections and diagnose potential issues with the ChromaDB database:
+### Citations via permalink propagation
 
-```bash
-cd webapp
-python lamb_kb_webapp.py
-```
+Every chunk's metadata carries the permalink URLs delivered by LAMB:
 
-This starts a web server on http://localhost:5000 by default that provides:
+- `source_item_id` — the Library item the chunk came from
+- `source_title` — display name for citations
+- `permalink_original`, `permalink_markdown`, `permalink_page` — LAMB-scoped URLs
 
-1. **Collection Explorer**: Browse, view, and query your knowledge base collections
-2. **Advanced Diagnostics**: Troubleshoot issues between the SQLite registry and ChromaDB storage
-   - Collection mappings verification
-   - UUID consistency checks
-   - Metadata analysis
-   - Segments information
-   - Detection of orphaned data
+Query responses include these keys so the LAMB frontend can render clickable citation links.
 
-The diagnostics tool is especially useful when:
-- Collections don't appear correctly in the API
-- You encounter "collection not found" errors
-- Documents aren't being properly stored or retrieved
-- You need to verify database integrity
+## Development
 
-![Diagnostics Screenshot]
-
-The diagnostics page helps identify and fix common issues like:
-- Case sensitivity mismatches in collection names
-- Missing UUID mappings
-- Orphaned data directories
-- Inconsistencies between the SQLite registry and ChromaDB 
-
-## API Authentication
-
-All API calls require a Bearer token for authentication. The token must match the `LAMB_API_KEY` environment variable.
-
-Example request:
-```bash
-curl -H 'Authorization: Bearer 0p3n-w3bu!' http://localhost:9090/
-```
-
-## Features
-
-### Core Functionality
-
-- **Collections Management**: Create, view, update and manage document collections
-- **Document Ingestion**: Process and store documents with vectorized content
-- **File Registry**: Maintain a registry of all uploaded and processed files with their metadata and processing status
-- **Similarity Search**: Query collections to find semantically similar content
-- **Static File Serving**: Serve original documents via URL references
-
-### Plugin System
-
-The server implements a flexible plugin architecture for both ingestion and querying:
-
-#### Ingestion Plugins
-
-Plugins for processing different document types with configurable chunking strategies:
-
-- **simple_ingest**: Processes text files with options for character, word, or line-based chunking
-- Support for custom chunking parameters:
-  - `chunk_size`: Size of each chunk
-  - `chunk_unit`: Unit for chunking (`char`, `word`, or `line`)
-  - `chunk_overlap`: Overlap between chunks
-
-#### Query Plugins
-
-Plugins for different query strategies:
-
-- **simple_query**: Performs similarity searches with configurable parameters:
-  - `top_k`: Number of results to return
-  - `threshold`: Minimum similarity threshold
-
-### Embeddings Configuration
-
-The system supports multiple embedding providers:
-
-1. **Local Embeddings** (default)
-   - Uses sentence-transformers models locally
-   - Example configuration in `.env`:
-     ```
-     EMBEDDINGS_MODEL=sentence-transformers/all-MiniLM-L6-v2
-     EMBEDDINGS_VENDOR=local
-     EMBEDDINGS_APIKEY=
-     ```
-
-2. **OpenAI Embeddings**
-   - Uses OpenAI's embedding API
-   - Requires an API key
-   - Example configuration in `.env`:
-     ```
-     EMBEDDINGS_MODEL=text-embedding-3-small
-     EMBEDDINGS_VENDOR=openai
-     EMBEDDINGS_APIKEY=your-openai-key-here
-     ```
-
-When creating collections, you can specify the embedding configuration or use "default" to inherit from environment variables:
-
-```json
-"embeddings_model": {
-  "model": "default",
-  "vendor": "default",
-  "apikey": "default"
-}
-```
-
-## API Examples
-
-Full api documentation is available at http://localhost:9090/docs (swagger) and backend/lamb-kb-server-api.md (markdown, wich can be generated with the backend/export_docs.py script ).
-
-### Creating a Collection
+### Setup
 
 ```bash
-curl -X POST 'http://localhost:9090/collections' \
-  -H 'Authorization: Bearer 0p3n-w3bu!' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "name": "my-knowledge-base",
-    "description": "My first knowledge base",
-    "owner": "user1",
-    "visibility": "private",
-    "embeddings_model": {
-      "model": "default",
-      "vendor": "default",
-      "apikey": "default"
-    }
-  }'
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"            # minimal
+pip install -e ".[all,dev]"        # with qdrant, local embeddings, openai SDK
 ```
 
-### Ingesting a File
-
-```bash
-curl -X POST 'http://localhost:9090/collections/1/ingest_file' \
-  -H 'Authorization: Bearer 0p3n-w3bu!' \
-  -F 'file=@/path/to/document.txt' \
-  -F 'plugin_name=simple_ingest' \
-  -F 'plugin_params={"chunk_size":1000,"chunk_unit":"char","chunk_overlap":200}'
-```
-
-### Querying a Collection
-
-```bash
-curl -X POST 'http://localhost:9090/collections/1/query' \
-  -H 'Authorization: Bearer 0p3n-w3bu!' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "query_text": "What is machine learning?",
-    "top_k": 5,
-    "threshold": 0.5,
-    "plugin_params": {}
-  }'
-```
-
-## Testing
-
-The repository includes test scripts to verify functionality:
-
-- **test.py**: A comprehensive test script that tests every API endpoint including creating collections, ingesting documents with different chunking strategies, performing queries, and file registry management
-- **params.json**: Configuration for the test script with example data and queries
-
-The test script provides a complete workflow example using the `LambKBClient` class, which can be used as a reference for integrating with the API in your own projects.
-
-To run the tests:
+### Running locally
 
 ```bash
 cd backend
-python test.py
+cp .env.example .env                # set LAMB_API_TOKEN
+PORT=9092 uvicorn main:app --host 0.0.0.0 --port 9092 --reload
 ```
 
-## File Registry
+### Running tests
 
-The system maintains a registry of all uploaded and processed files with their metadata and processing status:
-
-- **List Files**: View all files in a collection or filter by status
-- **File Status Management**: Track and update file status (processing, completed, failed, deleted)
-- **File Metadata**: Access metadata such as original filename, size, processing statistics, and chunking strategy
-
-Example API calls for file registry management:
+The suite is split into three tiers — see `tests/README.md` for fixture details.
 
 ```bash
-# List all files in a collection
-curl -X GET 'http://localhost:9090/collections/1/files' \
-  -H 'Authorization: Bearer 0p3n-w3bu!'
+# Run all three tiers + combined coverage gate (>=95%).
+./scripts/run_tests.sh
 
-# Update file status
-curl -X PATCH 'http://localhost:9090/files/1' \
-  -H 'Authorization: Bearer 0p3n-w3bu!' \
-  -H 'Content-Type: application/json' \
-  -d '{"status": "completed"}'
+# Single tier in isolation.
+pytest tests/unit/         -q                    # ~330 tests, ~16s, no external deps
+pytest tests/integration/  -q                    # ~178 tests, ~110s, ASGI in-process
+pytest tests/e2e/          -q                    # ~61 tests, ~150s, real HTTP + Docker
+
+# Combined with coverage report.
+pytest tests/ --cov=backend --cov-branch --cov-report=term-missing
+ruff check backend/ tests/
 ```
 
-# KNOWN ISSUES
-[Bug](https://github.com/chroma-core/chroma/issues/2731): Chroma 0.5.5 not working on intel CPU macbook #2731
-chroma-core/chroma#2731
+The e2e tier requires Docker (Qdrant + Ollama containers brought up automatically by the session fixture). If `QDRANT_TEST_PORT` and `OLLAMA_TEST_PORT` env vars are set, the fixture uses those pre-started containers instead of spinning up its own. If Docker is unavailable, the entire e2e tier is skipped with a clear message.
 
-# Web Application (just for development and debugging)
+Combined coverage hits **99%** line + branch on `backend/` (572 tests). The remaining 1% is structurally unreachable: a `sys.exit(1)` startup guard, an `ImportError` re-raise inside an `except ImportError` block, and a defensive branch the splitter algorithm never enters.
 
-The repository includes a web application that can be used to explore collections and diagnose potential issues with the ChromaDB database and consistency with the sqlite lamb-kb-server.db database.
-
-To run the web application:
+### Docker
 
 ```bash
-  cd backend
-  python lamb_kb_webapp.py
-  ```
+docker build -t lamb-kb-server .
+docker run -p 9092:9092 \
+    -e LAMB_API_TOKEN=your-token \
+    -v $(pwd)/data:/app/data \
+    lamb-kb-server
+```
 
-  
-go to http://localhost:9091 to access the web application 
-Warning, this app runs on port 9091, different from the server port 9090 
-Warning, this app is not production ready and is only for development and debugging purposes 
+## API overview
 
+All endpoints except `GET /health` require `Authorization: Bearer $LAMB_API_TOKEN`.
 
+| Group | Endpoints |
+|-------|-----------|
+| System | `GET /health`, `GET /backends`, `GET /chunking-strategies`, `GET /embedding-vendors` |
+| Collections | `POST /collections`, `GET /collections`, `GET /collections/{id}`, `PUT /collections/{id}`, `DELETE /collections/{id}` |
+| Content | `POST /collections/{id}/add-content`, `DELETE /collections/{id}/content/{source_item_id}` |
+| Query | `POST /collections/{id}/query` |
+| Jobs | `GET /jobs/{job_id}` |
 
+OpenAPI docs at `/docs` are served only when `LOG_LEVEL=DEBUG`.
 
+## Configuration
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `HOST` | `0.0.0.0` | Uvicorn bind host |
+| `PORT` | `9092` | Uvicorn bind port |
+| `LOG_LEVEL` | `INFO` | Python logging level; `DEBUG` also enables `/docs` |
+| `LAMB_API_TOKEN` | *(required)* | Bearer token LAMB sends |
+| `DATA_DIR` | `data` | Root directory for SQLite DB + vector storage |
+| `MAX_CONCURRENT_INGESTIONS` | `3` | Semaphore width for the worker |
+| `INGESTION_TASK_TIMEOUT_SECONDS` | `1800` | Per-job timeout (30 min) |
+| `MAX_REQUEST_SIZE_BYTES` | `209715200` | 200 MB cap on `add-content` bodies |
+| `QDRANT_URL` | *(empty)* | Optional Qdrant endpoint (if using qdrant backend) |
+| `QDRANT_API_KEY` | *(empty)* | Qdrant API key |
+| `VECTOR_DB_*`, `CHUNKING_*`, `EMBEDDING_*` | `ENABLE` | Per-plugin kill-switches |
+
+## Database
+
+SQLite at `$DATA_DIR/kb-server.db`, WAL mode enabled at connection time. Two tables:
+
+- `collections` — one row per KB (immutable store setup).
+- `ingestion_jobs` — persistent queue (document text lives here until processed; credentials do not).
+
+Schema is managed with `Base.metadata.create_all` (no Alembic migrations).
+
+Per-org vector storage lives under `$DATA_DIR/storage/{organization_id}/{collection_id}/`.
+
+## Security
+
+- Service-level bearer token only; compared with `hmac.compare_digest`.
+- No CORS middleware (not a browser-facing service).
+- Runs as `appuser` (non-root) in the Docker image.
+- Single-instance file lock prevents two server processes from sharing a data directory.
+- Embedding credentials live in memory only; losing them on restart is intentional — the failed job is marked accordingly.
+- Request-body size cap on `add-content` (returns 413 on overflow).
+
+## ADRs (see issue #334)
+
+- ADR-1: LAMB delivers content; KB server never calls Library Manager.
+- ADR-2: Distinct port (9092) for coexistence with the stable server.
+- ADR-3: `store_setup` is immutable — no content updates.
+- ADR-4: Per-request embedding credentials, in-memory only.
+- ADR-5: Query strategy is tied to chunking strategy.
+- ADR-6: All ACL lives in LAMB.
+- ADR-7: Polling for async processing (webhooks are a future improvement).
+- ADR-8: Raw-score merging for multi-KB queries happens in LAMB.
+- ADR-9: Per-org filesystem isolation.
+- ADR-10: No artificial storage limits.
+- ADR-11: Query rewriting stays in LAMB.

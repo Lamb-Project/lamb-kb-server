@@ -1,199 +1,151 @@
-import os
-import json
-from typing import Dict, Any, List, Optional
+"""LAMB KB Server — FastAPI application entry point.
 
-# Load environment variables from .env file
-try:
-    from dotenv import load_dotenv
-    # Load the environment variables from .env file
-    load_dotenv()
-    print(f"INFO: Environment variables loaded from .env file")
-    print(f"INFO: EMBEDDINGS_VENDOR={os.getenv('EMBEDDINGS_VENDOR')}")
-    print(f"INFO: EMBEDDINGS_MODEL={os.getenv('EMBEDDINGS_MODEL')}")
-except ImportError:
-    print("WARNING: python-dotenv not installed, environment variables must be set manually")
+A pluggable knowledge-base microservice that chunks, embeds, and stores
+vectors for LAMB. Designed as a pure computation service: LAMB owns access
+control, org configuration, and library content delivery; this server
+receives text + permalinks + credentials and produces searchable vectors.
 
-from fastapi import Depends, FastAPI, HTTPException, status, Query, File, Form, UploadFile, BackgroundTasks
-from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.openapi.utils import get_openapi
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
+Terminology: Libraries IMPORT content. Knowledge Bases INGEST content.
 
-# Database imports
-from database.connection import init_databases, get_db, get_chroma_client
-from database.models import Visibility, FileRegistry, FileStatus
-from database.service import CollectionService
-from schemas.collection import (
-    CollectionUpdate,
-    EmbeddingsModel
+The server runs on port 9092 (distinct from the legacy
+``lamb-kb-server-stable/`` on 9090) so both can coexist — see ADR-2.
+"""
+
+import logging
+import sys
+from contextlib import asynccontextmanager
+
+import config
+from database.connection import init_db
+from fastapi import FastAPI
+from routers import collections, content, jobs, query, system
+from tasks.worker import recover_stale_jobs, start_worker, stop_worker
+
+# --- Logging ---
+logging.basicConfig(
+    level=getattr(logging, config.LOG_LEVEL, logging.INFO),
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
+logger = logging.getLogger(__name__)
 
-# Import ingestion modules
-from plugins.base import discover_plugins
-from services.ingestion import IngestionService
-from services.query import QueryService
-from schemas.ingestion import (
-    IngestionPluginInfo,
-    IngestFileResponse,
-    IngestURLResponse,
-)
 
-# Import query modules
-from schemas.query import (
-    QueryPluginInfo
-)
+# --- Startup checks ---
+if not config.LAMB_API_TOKEN:
+    logger.critical("LAMB_API_TOKEN is not set. Refusing to start.")
+    sys.exit(1)
 
-# Get API key from environment variable or use default
-API_KEY = os.getenv("LAMB_API_KEY", "0p3n-w3bu!")
 
-# Get default embeddings model configuration from environment variables
-# Default to using Ollama with nomic-embed-text model
-# For OpenAI models, the environment variables should be set accordingly
-DEFAULT_EMBEDDINGS_MODEL = os.getenv("EMBEDDINGS_MODEL", "nomic-embed-text")
-DEFAULT_EMBEDDINGS_VENDOR = os.getenv("EMBEDDINGS_VENDOR", "ollama")  # 'ollama', 'local', or 'openai'
-DEFAULT_EMBEDDINGS_APIKEY = os.getenv("EMBEDDINGS_APIKEY", "")
-# Default endpoint for Ollama
-DEFAULT_EMBEDDINGS_ENDPOINT = os.getenv("EMBEDDINGS_ENDPOINT", "http://localhost:11434/api/embeddings")
+# --- Lifespan ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup and shutdown events for the application."""
+    # Startup
+    config.ensure_directories()
+    init_db()
+    _discover_plugins()
+    recover_stale_jobs()
+    await start_worker()
+    logger.info("LAMB KB Server started on port %d", config.PORT)
 
-# Initialize FastAPI app with detailed documentation
+    yield
+
+    # Shutdown
+    await stop_worker()
+    logger.info("LAMB KB Server stopped")
+
+
+# --- App ---
+# Disable OpenAPI docs in production (LOG_LEVEL != DEBUG).
+_docs_url = "/docs" if config.LOG_LEVEL == "DEBUG" else None
+
 app = FastAPI(
-    title="Lamb Knowledge Base Server",
-    description="""A dedicated knowledge base server designed to provide robust vector database functionality 
-    for the LAMB project and to serve as a Model Context Protocol (MCP) server.
-    
-    ## Authentication
-    
-    All API endpoints are secured with Bearer token authentication. The token must match 
-    the `LAMB_API_KEY` environment variable (default: `0p3n-w3bu!`).
-    
-    Example:
-    ```
-    curl -H 'Authorization: Bearer 0p3n-w3bu!' http://localhost:9090/
-    ```
-    
-    ## Features
-    
-    - Knowledge base management for LAMB Learning Assistants
-    - Vector database services using ChromaDB
-    - API access for the LAMB project
-    - Model Context Protocol (MCP) compatibility
-    """,
-    version="0.1.0",
-    contact={
-        "name": "LAMB Project Team",
-    },
-    license_info={
-        "name": "GNU General Public License v3.0",
-        "url": "https://www.gnu.org/licenses/gpl-3.0.en.html"
-    },
+    title="LAMB KB Server",
+    description=(
+        "Knowledge base microservice. Handles chunking, embedding, and "
+        "vector storage. Receives content + permalinks from LAMB — does "
+        "not call the Library Manager directly."
+    ),
+    version="1.0.0",
+    lifespan=lifespan,
+    docs_url=_docs_url,
+    redoc_url=None,
 )
 
-# Import shared dependencies
-from dependencies import verify_token
 
-# Import routers
-from routers import system, collections
+# --- Request logging ---
+@app.middleware("http")
+async def log_requests(request, call_next):
+    """Log every request with method, path, status, and duration."""
+    import time  # noqa: PLC0415
 
-# Initialize databases on startup
-@app.on_event("startup")
-async def startup_event():
-    """Initialize databases and perform sanity checks on startup."""
-    print("Initializing databases...")
-    init_status = init_databases()
-    
-    if init_status["errors"]:
-        for error in init_status["errors"]:
-            print(f"ERROR: {error}")
-    else:
-        print("Databases initialized successfully.")
-    
-    # Discover ingestion plugins
-    print("Discovering ingestion plugins...")
-    discover_plugins("plugins")
-    print(f"Found {len(IngestionService.list_plugins())} ingestion plugins")
-    
-    # Ensure static directory exists
-    IngestionService._ensure_dirs()
+    start = time.monotonic()
+    response = await call_next(request)
+    duration_ms = int((time.monotonic() - start) * 1000)
+    logger.info(
+        "%s %s → %d (%dms)",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    return response
 
-# Include routers
+
+# --- Routers ---
 app.include_router(system.router)
 app.include_router(collections.router)
-
-# Configure static files
-static_dir = IngestionService.STATIC_DIR
-app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # For development - restrict in production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.include_router(content.router)
+app.include_router(query.router)
+app.include_router(jobs.router)
 
 
-# Ingestion Plugin Endpoints
+# --- Plugin discovery ---
+def _discover_plugins() -> None:
+    """Import all plugin modules so they self-register.
 
-@app.get(
-    "/ingestion/plugins",
-    response_model=List[IngestionPluginInfo],
-    summary="List ingestion plugins",
-    description="""List all available document ingestion plugins.
-    
-    Example:
-    ```bash
-    curl -X GET 'http://localhost:9090/ingestion/plugins' \
-      -H 'Authorization: Bearer 0p3n-w3bu!'
-    ```
-    """,
-    tags=["Ingestion"],
-    responses={
-        200: {"description": "List of available ingestion plugins"},
-        401: {"description": "Unauthorized - Invalid or missing authentication token"}
-    }
-)
-async def list_ingestion_plugins(token: str = Depends(verify_token)):
-    """List all available document ingestion plugins.
-    
-    Returns:
-        List of plugin information objects
+    Each plugin module is imported inside a try/except so a missing optional
+    dependency (e.g. ``qdrant-client``, ``sentence-transformers``) only
+    disables that particular plugin instead of preventing startup.
+
+    Plugins whose category+name env var is set to ``DISABLE`` are skipped
+    at registration time regardless of whether their deps are importable.
     """
-    return IngestionService.list_plugins()
+    _plugin_modules = [
+        # Vector DB backends
+        "plugins.vector_db.chromadb_backend",
+        "plugins.vector_db.qdrant_backend",
+        # Chunking strategies
+        "plugins.chunking.simple",
+        "plugins.chunking.hierarchical",
+        "plugins.chunking.by_page",
+        "plugins.chunking.by_section",
+        # Embedding vendors
+        "plugins.embedding.openai",
+        "plugins.embedding.ollama",
+        "plugins.embedding.local",
+    ]
+    import importlib  # noqa: PLC0415
 
+    for module_name in _plugin_modules:
+        try:
+            importlib.import_module(module_name)
+        except Exception:
+            logger.warning(
+                "Failed to load plugin module '%s' — skipping.",
+                module_name,
+                exc_info=True,
+            )
 
+    from plugins.base import (  # noqa: PLC0415
+        ChunkingRegistry,
+        EmbeddingRegistry,
+        VectorDBRegistry,
+    )
 
-@app.get(
-    "/files/{file_id}/content",
-    summary="Get file content",
-    description="Get the content of a file from the collection",
-    tags=["Files"],
-    responses={
-        200: {"description": "File content retrieved successfully"},
-        401: {"description": "Unauthorized - Invalid or missing authentication token"},
-        404: {"description": "File not found"},
-        500: {"description": "Server error"}
-    }
-)
-async def get_file_content(
-    file_id: int,
-    token: str = Depends(verify_token),
-    db: Session = Depends(get_db)
-):
-    """Get the content of a file."""
-    from services.collections import CollectionsService
-    
-    try:
-        return CollectionsService.get_file_content(file_id, db)
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        import traceback
-        print(f"Error retrieving file content: {str(e)}")
-        print(f"Traceback: {traceback.format_exc()}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to retrieve file content: {str(e)}"
-        )
+    logger.info(
+        "Discovered plugins — vector_db: %s | chunking: %s | embedding: %s",
+        [p["name"] for p in VectorDBRegistry.list_plugins()],
+        [p["name"] for p in ChunkingRegistry.list_plugins()],
+        [p["name"] for p in EmbeddingRegistry.list_plugins()],
+    )

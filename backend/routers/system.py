@@ -1,117 +1,81 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from typing import Dict, Any
+"""System endpoints: health check and plugin capability listings."""
 
-from database.connection import get_db, init_databases, get_chroma_client
-from database.models import Collection
-from schemas.system import MessageResponse, HealthResponse, DatabaseStatusResponse
+import logging
+
+from database.connection import get_session_direct
 from dependencies import verify_token
+from fastapi import APIRouter, Depends
+from plugins.base import ChunkingRegistry, EmbeddingRegistry, VectorDBRegistry
+from sqlalchemy import text
+from tasks.worker import is_worker_running
 
-router = APIRouter()
+logger = logging.getLogger(__name__)
+
+router = APIRouter(tags=["System"])
 
 
-# Root endpoint with enhanced documentation
-@router.get(
-    "/", 
-    response_model=MessageResponse,
-    summary="Root endpoint",
-    description="""Returns a welcome message to confirm the server is running.
-    
-    Example:
-    ```bash
-    curl -X GET 'http://localhost:9090/' \
-      -H 'Authorization: Bearer 0p3n-w3bu!'
-    ```
-    """,
-    tags=["System"],
-    responses={
-        200: {"description": "Successful response with welcome message"},
-        401: {"description": "Unauthorized - Invalid or missing authentication token"}
-    }
-)
-async def root(token: str = Depends(verify_token)):
-    """Root endpoint that returns a welcome message.
-    
-    This endpoint is primarily used to verify the server is running and authentication is working correctly.
-    
+@router.get("/health")
+async def health() -> dict:
+    """Health check endpoint.
+
+    Does NOT require authentication so monitoring systems can reach it
+    without a service token.
+
+    Checks:
+        - Database connectivity (``SELECT 1``).
+        - Worker loop running status.
+
     Returns:
-        A dictionary containing a welcome message
+        Service status, version, and per-component health.
     """
-    return {"message": "Hello World from the Lamb Knowledge Base Server!"}
+    db_ok = False
+    try:
+        db = get_session_direct()
+        db.execute(text("SELECT 1"))
+        db.close()
+        db_ok = True
+    except Exception:
+        logger.exception("Health check: database connectivity failed")
 
+    worker_ok = is_worker_running()
 
-# Health check endpoint
-@router.get(
-    "/health",
-    response_model=HealthResponse,
-    summary="Health check",
-    description="""Check the health status of the server.
-    
-    Example:
-    ```bash
-    curl -X GET 'http://localhost:9090/health'
-    ```
-    """,
-    tags=["System"],
-    responses={
-        200: {"description": "Server is healthy and running"}
-    }
-)
-async def health_check():
-    """Health check endpoint that does not require authentication.
-    
-    This endpoint can be used to verify the server is running without requiring authentication.
-    
-    Returns:
-        A dictionary containing the server status and version
-    """
-    return {"status": "ok", "version": "0.1.0"}
-
-
-# Database status endpoint
-@router.get(
-    "/database/status",
-    response_model=DatabaseStatusResponse,
-    summary="Database status",
-    description="""Check the status of all databases.
-    
-    Example:
-    ```bash
-    curl -X GET 'http://localhost:9090/database/status' \
-      -H 'Authorization: Bearer 0p3n-w3bu!'
-    ```
-    """,
-    tags=["Database"],
-    responses={
-        200: {"description": "Database status information"},
-        401: {"description": "Unauthorized - Invalid or missing authentication token"}
-    }
-)
-async def database_status(token: str = Depends(verify_token), db: Session = Depends(get_db)):
-    """Get the status of the SQLite and ChromaDB databases.
-    
-    Returns:
-        A dictionary with database status information
-    """
-    # Re-initialize databases to get fresh status
-    db_status = init_databases()
-    
-    # Count collections in SQLite
-    collections_count = db.query(Collection).count()
-    
-    # Get ChromaDB collections
-    chroma_client = get_chroma_client()
-    chroma_collections = chroma_client.list_collections()
-    
+    overall = "ok" if (db_ok and worker_ok) else "degraded"
     return {
-        "sqlite_status": {
-            "initialized": db_status["sqlite_initialized"],
-            "schema_valid": db_status["sqlite_schema_valid"],
-            "errors": db_status.get("errors", [])
+        "status": overall,
+        "service": "kb-server",
+        "version": "1.0.0",
+        "checks": {
+            "database": "ok" if db_ok else "error",
+            "worker": "ok" if worker_ok else "error",
         },
-        "chromadb_status": {
-            "initialized": db_status["chromadb_initialized"],
-            "collections_count": len(chroma_collections)
-        },
-        "collections_count": collections_count
-    } 
+    }
+
+
+@router.get("/backends", dependencies=[Depends(verify_token)])
+async def list_backends() -> dict:
+    """List all registered vector DB backends with their parameter schemas.
+
+    Returns:
+        Dict with ``backends`` list.
+    """
+    return {"backends": VectorDBRegistry.list_plugins()}
+
+
+@router.get("/chunking-strategies", dependencies=[Depends(verify_token)])
+async def list_chunking_strategies() -> dict:
+    """List all registered chunking strategies with their parameter schemas.
+
+    Returns:
+        Dict with ``strategies`` list.
+    """
+    return {"strategies": ChunkingRegistry.list_plugins()}
+
+
+@router.get("/embedding-vendors", dependencies=[Depends(verify_token)])
+async def list_embedding_vendors() -> dict:
+    """List all registered embedding vendors with their parameter schemas.
+
+    Returns:
+        Dict with ``vendors`` list.
+    """
+    return {"vendors": EmbeddingRegistry.list_plugins()}

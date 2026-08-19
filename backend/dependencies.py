@@ -1,34 +1,44 @@
-import os
+"""FastAPI dependencies for request-level concerns.
+
+The KB Server trusts requests from LAMB unconditionally when the bearer
+token matches. There is no user-level auth here — LAMB handles that and
+passes pre-authorized requests (ADR-6).
+"""
+
+import hmac
+
+from config import LAMB_API_TOKEN
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-# Get API key from environment variable or use default
-API_KEY = os.getenv("LAMB_API_KEY", "0p3n-w3bu!")
+_bearer_scheme = HTTPBearer()
 
-# Security scheme
-security = HTTPBearer(
-    scheme_name="Bearer Authentication",
-    description="Enter the API token as a Bearer token",
-    auto_error=True,
-)
 
-# Authentication dependency with detailed docstring
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Verify the provided Bearer token against the API key.
-    
+async def verify_token(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
+) -> str:
+    """Validate that the request carries the correct LAMB service token.
+
+    Uses ``hmac.compare_digest`` for timing-safe comparison to prevent
+    timing attacks that could reveal the token character by character.
+
     Args:
-        credentials: The HTTP Authorization credentials containing the Bearer token
-        
+        credentials: The Authorization header parsed by HTTPBearer.
+
     Returns:
-        The validated token string
-        
+        The verified token string.
+
     Raises:
-        HTTPException: If the token is invalid or missing
+        HTTPException: 401 if token is missing or invalid.
     """
-    if credentials.credentials != API_KEY:
+    # TypeError is raised for strings with non-ASCII code points (e.g. latin-1 header values).
+    try:
+        is_valid = hmac.compare_digest(credentials.credentials, LAMB_API_TOKEN)
+    except TypeError:
+        is_valid = False
+    if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication token",
-            headers={"WWW-Authenticate": "Bearer"},
+            detail="Invalid service token.",
         )
-    return credentials.credentials 
+    return credentials.credentials
